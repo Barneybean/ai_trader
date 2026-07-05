@@ -22,7 +22,6 @@ calls — tuned to surface only the few ideas with genuine edge.*
 🧩 [Make It Yours](#-make-it-yours) ·
 🔌 [Brokers](#-broker-support) ·
 🔒 [Privacy Gate](#-privacy--the-pii-gate) ·
-🗺️ [Roadmap](#️-roadmap) ·
 🤝 [Contributing](#-contributing) ·
 🙏 [Credits](#-acknowledgements--citation)
 
@@ -34,7 +33,7 @@ calls — tuned to surface only the few ideas with genuine edge.*
 > 🔗 **A broker connection is required.** You must connect **at least one Robinhood agentic-trading
 > account** — most of the desk's research runs through it (live quotes, ~1yr historicals,
 > fundamentals, earnings, positions, buying power). **Another brokerage connector with equivalent
-> data + agentic functions works too** (IBKR/Futu adapters are on the roadmap). Without a connector,
+> data + agentic functions works too** (IBKR/Futu adapters planned). Without a connector,
 > the desk falls back to web + manually-supplied data, which is materially more limited. Set it up
 > from a **CLI agent, not a desktop app** (see [Brokers](#-broker-support)).
 
@@ -229,7 +228,7 @@ orders (with confirmation). Follow Robinhood's official setup:
 > The desk still **confirms every order with you before placing it.**
 
 The design goal is **one broker-adapter interface** — add a broker by implementing a single class.
-See the [roadmap](#️-roadmap) and [`CONTRIBUTING.md`](CONTRIBUTING.md).
+See [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ---
 
@@ -252,15 +251,6 @@ python3 scripts/scan_pii.py            # scan on demand before publishing
 ```
 
 Add your exact private strings to `scripts/pii_denylist.local.txt` (git-ignored) for hard blocking.
-
----
-
-## 🗺️ Roadmap
-
-- [ ] `tradingdesk` **CLI** (`pip install`) wrapping the engines, journal, and a data-pack builder.
-- [ ] **Broker-adapter layer** (`base` protocol + Robinhood / IBKR / Futu) — broker-agnostic desk.
-- [ ] Optional **autonomous LLM runner** for a fully code-native desk run.
-- [ ] More sector playbooks, a test suite, and example reports.
 
 ---
 
