@@ -213,34 +213,32 @@ your fork's public history.
 
 ## 🌍 The Knowledge Commons
 
-No single trader knows how every industry prices. A semis veteran reads node yields and design
-wins; a biotech specialist reads trial design and cash runway; a bank analyst reads credit cycles
-and book-value quality. **AI Trader exists to collect that craft in one open place** — as
-[sector playbooks](skills/analysis/sector-playbooks.md) and analysis skills that every desk built
-on this repo reads on its very next run.
+No single trader knows how every industry — or every name — prices. A semis veteran reads node
+yields and design wins; a biotech specialist reads trial design and cash runway; a bank analyst
+reads credit cycles and book-value quality. This repo collects that craft in one open place, and
+every desk built on it reads the result on its next run.
 
-**The loop:**
+Contributed knowledge lives at three levels:
 
-1. Someone who knows an industry writes its playbook from
-   [`skills/analysis/sectors/_TEMPLATE.md`](skills/analysis/sectors/_TEMPLATE.md) — what sets the
-   price, the dated catalysts and where they show up first, the valuation lens, the red flags, the
-   variant angle generalists miss.
-2. It's reviewed in the open against a
-   [named quality bar](CONTRIBUTING.md#the-playbook-quality-bar) — **specific, falsifiable,
-   primary-sourced, dated, illustrated, general** — the same way the desk reviews a trade.
-3. It merges, and **every fork's analyst team gains a specialist it didn't have yesterday.**
+- **Sector / industry playbooks** — [`skills/analysis/sectors/`](skills/analysis/sectors/): how an
+  industry prices (drivers, catalysts, valuation lens, red flags, variant angle).
+- **Stock playbooks** — [`skills/analysis/stocks/`](skills/analysis/stocks/): how a specific name
+  trades — repeating setups, catalyst calendar, dated episodes. Knowledge, never a live call.
+- **Trading & analysis skills** — strategy patterns (`skills/decision/`), edge signals
+  (`skills/edge/`), engine improvements.
 
-The live coverage map and the most-wanted list (banks, REITs, oil & gas, industrials, healthcare
-services, mining, and more) live in
-[`skills/analysis/sectors/README.md`](skills/analysis/sectors/README.md). If you've spent years in
-a sector, an hour of writing upgrades every desk downstream — and their improvements flow back to
-yours.
+**The loop:** write it from the matching `_TEMPLATE.md` → it's reviewed in the open against a
+[named quality bar](CONTRIBUTING.md#the-playbook-quality-bar) (**specific, falsifiable,
+primary-sourced, dated, illustrated, general**) → it merges, and every fork's analyst team picks
+it up on its next run. Coverage maps and the wanted list (banks, REITs, oil & gas, industrials,
+healthcare services, mining, …) are in
+[`skills/analysis/sectors/README.md`](skills/analysis/sectors/README.md) and
+[`skills/analysis/stocks/README.md`](skills/analysis/stocks/README.md).
 
-**Why you can trust what's in here:** nothing is a black box. Every rule the desk follows — the
-debate protocol, the risk gates, the sizing math — is plain-English markdown you can read, audit,
-and edit. Contributions carry knowledge, never positions (the PII gate enforces it). And the desk
-holds itself accountable: every call it makes is journaled and scored against SPY, so the process
-builds a track record, not just a pitch.
+Nothing here is a black box: every rule the desk follows — the debate protocol, the risk gates,
+the sizing math — is plain markdown you can read, audit, and edit. Contributions carry knowledge,
+never positions (the PII gate enforces it), and the desk journals and scores its own calls against
+SPY, so the process keeps a track record.
 
 ---
 
@@ -298,11 +296,10 @@ Add your exact private strings to `scripts/pii_denylist.local.txt` (git-ignored)
 
 ## 🤝 Contributing
 
-Issues and PRs welcome. **The highest-leverage contribution is an industry playbook** — see
-[The Knowledge Commons](#-the-knowledge-commons) and the wanted list in
-[`skills/analysis/sectors/README.md`](skills/analysis/sectors/README.md); broker adapters, engine
-improvements, and docs are close behind. Open a **📚 playbook proposal** issue to claim a sector,
-and run `python3 scripts/scan_pii.py` before pushing. Full guide + quality bar:
+Issues and PRs welcome. The highest-leverage contribution is a playbook — sector/industry or
+single-stock (see [The Knowledge Commons](#-the-knowledge-commons)); broker adapters, engine
+improvements, and docs are close behind. Open a **playbook proposal** issue to claim one, and run
+`python3 scripts/scan_pii.py` before pushing. Full guide + quality bar:
 [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ---
