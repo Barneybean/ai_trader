@@ -37,3 +37,4 @@ model = "claude-opus-4-8"
 journal = "journal"
 reports = "reports"
 private_refs = "skills/private"   # optional bring-your-own overlay (git-ignored)
+
