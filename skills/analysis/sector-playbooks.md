@@ -39,3 +39,4 @@ and the primary source that reveals each first, (3) **how the sector is valued**
 model, on what earnings base) and the mispricing signal, (4) the **sector-specific red flags**,
 (5) the **primary sources**, and (6) the **variant angle** — what industry insiders track that
 generalists miss.
+
