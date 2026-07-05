@@ -112,3 +112,4 @@ Every idea carries a one-line **macro tilt**: the regime, whether it's a tailwin
 Legibility is the goal: the user thinks in rates, yields, and rotation
 (`skills/playbook/house-views.md`), so state macro reasoning in those terms — and always
 **validate the heuristic against live data** for the specific name and day before trusting it.
+
