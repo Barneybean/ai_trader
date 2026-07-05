@@ -62,3 +62,4 @@ Surface the **one or two questions the idea is most vulnerable on** and how the 
 - The **Red Team** runs §1–§8, hands the CIO a verdict + residual vulnerabilities.
 - The **CIO gate** (`skills/decision/review-rubric.md`) won't pass a high-conviction idea that hasn't survived, and sizes per §9.
 - Applies to **user premises too**: audit the asserted cause→effect (§1–§2) and answer with the conditional and flip-risk, not a reflexive "yes." Agreeing without testing is the failure mode this file prevents.
+
