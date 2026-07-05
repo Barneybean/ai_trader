@@ -92,9 +92,9 @@ Use subagents for the analyst roles where available (keeps perspectives independ
 **Step 8 — Review committee (CIO gate).** Score every survivor with the rubric, apply the hard gates, rank. Require a real variant-perception statement on each surfaced idea; no differentiated edge → beta, held to a higher bar or labeled. If nothing passes, say so.
 
 **Step 9 — Report + LOG.** Deliver in the format below — depth in reasoning, brevity in delivery. Persist as markdown source + styled HTML:
-1. `python3 scripts/new_report.py --market <open|closed>` → `reports/AI-Trader-Report-<YYYY-MM-DD>.md` (write the final content in).
+1. `python3 scripts/new_report.py --market <open|closed> --title <short-run-title> --model <your-model-name>` → `reports/report_<YYYY-MM-DD>_<title>_<model>.md` (write the final content in). Title = the run's focus (e.g. `daily-desk-run`, `nvda-deep-dive`); model = the AI model running the desk (e.g. `claude-fable-5`).
 2. Charts per fully-covered name: `python3 scripts/charts.py <historicals.json> --symbol <T> --price <live> --float <float> --out reports/charts --date <YYYY-MM-DD>` — embed the three images it prints in that name's block.
-3. `python3 scripts/build_report.py reports/AI-Trader-Report-<YYYY-MM-DD>.md` → the self-contained styled `.html` (the committed deliverable; the `.md` is a build intermediate, not committed).
+3. `python3 scripts/build_report.py reports/report_<YYYY-MM-DD>_<title>_<model>.md` → the self-contained styled `.html` (the committed deliverable; the `.md` is a build intermediate, not committed).
 
 Then publish: `git add reports/*.html reports/charts && git commit -m "Daily desk report <YYYY-MM-DD>" && git push` (HTML + charts only; report lives in your repo).
 
