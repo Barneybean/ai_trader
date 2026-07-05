@@ -242,3 +242,4 @@ reports/charts/*.svg
 
 # Local PII denylist (your exact private strings) — never commit
 scripts/pii_denylist.local.txt
+
