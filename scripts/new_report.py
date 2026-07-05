@@ -10,8 +10,14 @@ the reports/ folder so there is a dated archive.
 
 Pure standard library — no install step.
 
+Filename convention: report_<date>_<title>_<model>.md
+    e.g. reports/report_2026-07-05_daily-desk-run_claude-fable-5.md
+Title and model are slugified (lowercase, hyphens). Pass the run's focus as
+--title ("daily-desk-run", "nvda-deep-dive") and the AI model that ran the
+desk as --model, so the archive shows what was analyzed and by which model.
+
 Usage:
-    python3 scripts/new_report.py                 # today's report, market state auto-omitted
+    python3 scripts/new_report.py --title daily-desk-run --model claude-fable-5
     python3 scripts/new_report.py --market open    # stamp "market open" in the header
     python3 scripts/new_report.py --date 2026-07-03
     python3 scripts/new_report.py --force          # overwrite if it already exists
@@ -30,7 +36,7 @@ import sys
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REPORTS_DIR = os.path.join(PROJECT_ROOT, "reports")
 
-FILENAME_FMT = "AI-Trader-Report-{date}.md"
+FILENAME_FMT = "report_{date}_{title}_{model}.md"
 
 SCAFFOLD = """\
 # Desk Run — {date_human}{market}
@@ -87,8 +93,20 @@ def _today():
     return _dt.date.today().isoformat()
 
 
-def build_path(date_iso):
-    return os.path.join(REPORTS_DIR, FILENAME_FMT.format(date=date_iso))
+def slugify(text):
+    """Lowercase, hyphen-separated, filename-safe ("NVDA Deep Dive" -> "nvda-deep-dive")."""
+    out = []
+    for ch in text.lower():
+        if ch.isalnum() or ch == ".":
+            out.append(ch)
+        elif out and out[-1] != "-":
+            out.append("-")
+    return "".join(out).strip("-") or "untitled"
+
+
+def build_path(date_iso, title, model):
+    return os.path.join(REPORTS_DIR, FILENAME_FMT.format(
+        date=date_iso, title=slugify(title), model=slugify(model)))
 
 
 def render_scaffold(date_iso, market):
@@ -101,6 +119,10 @@ def render_scaffold(date_iso, market):
 def main(argv=None):
     p = argparse.ArgumentParser(description="Create the dated AI Trader report file.")
     p.add_argument("--date", default=_today(), help="Report date YYYY-MM-DD (default: today).")
+    p.add_argument("--title", default="desk-run",
+                   help="Short run title, slugified into the filename (default: desk-run).")
+    p.add_argument("--model", default="unknown-model",
+                   help="AI model that ran the desk (e.g. claude-fable-5), slugified into the filename.")
     p.add_argument("--market", choices=["open", "closed"], default=None,
                    help="Optional market state to stamp in the header.")
     p.add_argument("--force", action="store_true", help="Overwrite if the file already exists.")
@@ -116,7 +138,7 @@ def main(argv=None):
     if args.market:
         market = "market open" if args.market == "open" else "market closed"
 
-    path = build_path(args.date)
+    path = build_path(args.date, args.title, args.model)
 
     if args.print_path:
         print(path)
