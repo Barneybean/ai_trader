@@ -38,7 +38,7 @@ Buy one option and sell another of the same type at a different strike/same expi
 1. **Only when the structure fits the thesis and horizon** — covered calls/CSPs for income and entries on names you'd hold; verticals for defined-risk directional bets. Don't bolt options onto every idea.
 2. **Always show:** structure, strikes, expiry, net debit/credit, max gain, max loss, breakeven, and assignment implications — options hide risk that must be made explicit.
 3. **Respect the account constraint above** and flag when the trade can't be placed in the tradable account as-is.
-4. **Tax note:** most options are short-term / ordinary-income taxed; covered-call premium and assignments have their own treatment — keep the Tactical-sleeve tax drag in mind (`tax-aware.md`).
+4. **Tax note:** most options are short-term / ordinary-income taxed; covered-call premium and assignments have their own treatment — keep the Tactical-sleeve tax drag in mind (`skills/decision/tax-aware.md`).
 5. **Confirm before placing** via `review_option_order` → explicit yes → `place_option_order`, same as equities.
 
-**Mentor's options discipline** (`mentor-casebook.md`): only **small, LONG-dated calls on high-conviction names** — a tiny position (≲0.15–1%) betting on a multi-quarter/year thesis (his RC Jan-2027, SOFI, Google/Intel calls — all taken to profit). **Short-dated options = gambling** ("玩多了长期都亏钱") — avoid. Use puts only as brief tactical hedges at highs, taken to profit in days, not as a standing book.
+**Mentor's options discipline** (`skills/playbook/mentor-casebook.md`): only **small, LONG-dated calls on high-conviction names** — a tiny position (≲0.15–1%) betting on a multi-quarter/year thesis (his RC Jan-2027, SOFI, Google/Intel calls — all taken to profit). **Short-dated options = gambling** ("玩多了长期都亏钱") — avoid. Use puts only as brief tactical hedges at highs, taken to profit in days, not as a standing book.

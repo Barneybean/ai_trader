@@ -40,5 +40,5 @@ When the desk reviews holdings and finds a losing position whose thesis has weak
 | Core winner near 1-yr mark, thesis intact | Prefer to hold for long-term rate; quantify the saving |
 | Position stopped out / thesis broken | Exit regardless of tax — risk first |
 | Losing position, weak thesis, have gains to offset | Consider harvesting; avoid rebuy 31+ days |
-| Want to rotate but both names similar rank | Don't — turnover costs tax; hold (see strategies.md) |
+| Want to rotate but both names similar rank | Don't — turnover costs tax; hold (see skills/decision/strategies.md) |
 | Tactical (short-term) idea with thin edge | Skip — ordinary-income tax + spread eats it |

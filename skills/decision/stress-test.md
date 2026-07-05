@@ -26,20 +26,20 @@ For **every** catalyst, write the bull resolution AND the bear resolution explic
 - Is it binary/two-sided? What is "the same event, gone wrong" (delay vs cancel; beat-but-guide-down;
   approval-but-label-restriction; win-but-priced-in)?
 - Is the catalyst **already consensus / priced**? If everyone expects it, the surprise is asymmetric to
-  the downside. (Ties to `variant-perception.md`.)
+  the downside. (Ties to `skills/edge/variant-perception.md`.)
 - Distinguish a benign from a malign version of the *same* headline before trading it.
 
 ## 3. Assumption inventory (find the load-bearing wall)
 List every assumption the thesis rests on and tag each:
 - **Load-bearing** (thesis dies without it) vs **incidental**. Rate confidence in each load-bearing one.
 - A thesis that needs **many** things to all go right is fragile — prefer one or two clear drivers
-  (no overfitting, `strategies.md`). Count the load-bearing assumptions; more than ~2–3 is a yellow flag.
+  (no overfitting, `skills/decision/strategies.md`). Count the load-bearing assumptions; more than ~2–3 is a yellow flag.
 - The **weakest load-bearing assumption sets the position size**, not the most exciting one.
 
 ## 4. Base-rate / reference class
 - How often does *this kind* of setup actually work? Anchor on the reference class, not the vivid story.
 - Validate the specific trigger against this name's own history (does "RSI<30 bounces here" actually
-  hold?) via the historicals — `strategies.md`.
+  hold?) via the historicals — `skills/decision/strategies.md`.
 - Beware the narrative that feels inevitable in hindsight but has a poor base rate live.
 
 ## 5. Disconfirming-evidence hunt (argue the other side hardest)
@@ -47,14 +47,14 @@ List every assumption the thesis rests on and tag each:
   smartest bear say? Steelman it.
 - What single piece of data would **falsify** the thesis? Go look for it. If you can't name one, the
   thesis isn't yet testable — that's a problem, not a comfort.
-- Check the institutional footprint for contradiction: does the chip/OBV read (`accumulation-distribution.md`)
+- Check the institutional footprint for contradiction: does the chip/OBV read (`skills/analysis/chip-distribution.md`)
   agree, or is smart money doing the opposite of the story?
 
 ## 6. Invalidation design (specific, observable, and NOT just a stop-loss)
 - Define a **concrete, observable condition** that says "we were wrong" — ideally *non-price* (thesis
   break: a contract lost, guidance cut, a customer default, a catalyst pulled), plus a price level.
 - Distinguish a **thesis break** (exit / stop adding) from **noise / a shakeout** (stay, even add) — the
-  wash-vs-markdown test in `accumulation-distribution.md`.
+  wash-vs-markdown test in `skills/analysis/chip-distribution.md`.
 - Pre-commit it *before* entry, in writing, so it can't be rationalized away later.
 
 ## 7. Path & timing risk (right destination, wrong road)
@@ -86,7 +86,7 @@ answers them. An idea presented without its strongest counter-argument has not b
 
 ## How the desk uses it
 - The **Red Team** runs §1–§8 and hands the CIO a verdict + the residual vulnerabilities.
-- The **CIO gate** (`review-rubric.md`) will not pass a high-conviction idea that hasn't survived the
+- The **CIO gate** (`skills/decision/review-rubric.md`) will not pass a high-conviction idea that hasn't survived the
   stress-test, and sizes per §9.
 - Applies to **user premises too**: when the user asserts a cause→effect, the desk audits it (§1–§2) and
   answers with the conditional and the flip-risk, not a reflexive "yes." Agreeing without testing is the

@@ -9,8 +9,8 @@ markup, and accumulating into them instead of being flushed out.** This is a *pr
 pattern read*, always confirmed with volume/OBV and fused with the fundamental thesis — a wash
 in a broken business is just a decline.
 
-Pairs with `quant-analysis.md` (the levels/volume engine), `insider-and-smart-money.md` (insider
-buying *is* an accumulation footprint), and `variant-perception.md`.
+Pairs with `skills/analysis/quant-levels.md` (the levels/volume engine), `skills/edge/smart-money.md` (insider
+buying *is* an accumulation footprint), and `skills/edge/variant-perception.md`.
 
 ---
 
@@ -70,7 +70,7 @@ transferring there (accumulation if price holds, distribution if it stalls at hi
 - **Higher lows**, narrowing range, long dull sideways action.
 - **OBV rising while price is flat** — the classic "smart money accumulating under cover" tell.
 - **Springs/shakeouts that quickly reclaim** support (see below).
-- **Insider open-market cluster buying** at the base (`insider-and-smart-money.md`) — a direct
+- **Insider open-market cluster buying** at the base (`skills/edge/smart-money.md`) — a direct
   footprint.
 
 ## Distribution tells (trim / avoid)

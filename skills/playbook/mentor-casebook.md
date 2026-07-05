@@ -3,7 +3,7 @@
 A **pattern library** of an investor you study — their dated calls and how they actually played out
 — used to *calibrate the desk's judgment*, not to copy-trade. This ships empty on purpose: fill it
 with your own source material, or delete it. Keep anything private (a paid newsletter's live
-positions, a friend's book) in a git-ignored `references/private/` file instead.
+positions, a friend's book) in a git-ignored `skills/private/` file instead.
 
 ## How to use it
 
@@ -26,7 +26,7 @@ their **dated calls** so the desk can check the method against reality over time
 
 Reconcile these against live prices periodically; a method is only as good as how its calls aged.
 The desk's own calls are logged separately by `scripts/track_record.py` (see
-`references/reflection-and-memory.md`).
+`skills/decision/reflection-memory.md`).
 
 > **Privacy:** never commit someone's paywalled/members-only live positions. Distill the *method*
 > (fine to share) and keep the *positions* private.

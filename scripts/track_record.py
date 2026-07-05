@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The desk's decision journal + reflection loop (see references/reflection-and-memory.md).
+"""The desk's decision journal + reflection loop (see skills/decision/reflection-memory.md).
 
 A pure-stdlib ledger that lets the desk LEARN from its own calls: log every recommendation,
 score it against SPY once the outcome matures (raw return AND alpha), attach a one-lesson
@@ -147,7 +147,7 @@ def cmd_score(args):
           + (f", SPY {spy}%, alpha {alpha}%" if spy is not None else " (no SPY window given)")
           + f" → {verdict}")
     print("Now write the lesson:  track_record.py reflect --id "
-          f"{rec['id']} --text \"...\"  (see references/reflection-and-memory.md)")
+          f"{rec['id']} --text \"...\"  (see skills/decision/reflection-memory.md)")
 
 
 def cmd_reflect(args):

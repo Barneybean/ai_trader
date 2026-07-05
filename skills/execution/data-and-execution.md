@@ -38,7 +38,7 @@ Per candidate ticker:
 - `get_equity_positions` (the configured tradable account) — current holdings / existing exposure.
 - `get_portfolio` (the configured tradable account) — authoritative buying power for sizing.
 
-Once per run, for the **macro/regime read** (`references/macro-regime.md`):
+Once per run, for the **macro/regime read** (`skills/analysis/macro-regime.md`):
 
 - `get_indexes` / `get_index_quotes` — VIX, SPX/NDX and any available Treasury-yield index (e.g. TNX/10-yr) for the top-down filter.
 - `get_equity_historicals` on `SPY`/`QQQ` → `scripts/indicators.py` for market trend & breadth (above/below the 200-DMA).
@@ -52,7 +52,7 @@ Resolve company names to tickers with `search`. For sentiment/news use `WebSearc
 python3 scripts/indicators.py <path-to-historicals.json> --price <live quote>
 ```
 
-Save the connector's historicals response to a file (or pipe via `-`). Pass the live quote via `--price` when the market is open so the support/resistance map centers on the real price. The script auto-locates the bars and prints, grouped by category: trend (SMA 20/50/200, EMA 12/26, **ADX/+DI/−DI**), momentum (RSI(14), MACD(12,26,9) with fresh-cross flag, **Stochastic**), volatility (**ATR(14)**, Bollinger(20,2)), volume (**relative volume, OBV** accumulation/distribution), the **support/resistance map** (nearest support below, nearest resistance/"pressure" above, full ladders, classic pivot points, Fibonacci retracements), the 52-wk range, an **ATR/structure trade scaffold** (reference stop, target, reward:risk), and a plain-English signal summary. Interpret it per `references/quant-analysis.md`. If the feed lacks high/low, the summary flags that ATR/ADX/Stoch/S-R are degraded to closes.
+Save the connector's historicals response to a file (or pipe via `-`). Pass the live quote via `--price` when the market is open so the support/resistance map centers on the real price. The script auto-locates the bars and prints, grouped by category: trend (SMA 20/50/200, EMA 12/26, **ADX/+DI/−DI**), momentum (RSI(14), MACD(12,26,9) with fresh-cross flag, **Stochastic**), volatility (**ATR(14)**, Bollinger(20,2)), volume (**relative volume, OBV** accumulation/distribution), the **support/resistance map** (nearest support below, nearest resistance/"pressure" above, full ladders, classic pivot points, Fibonacci retracements), the 52-wk range, an **ATR/structure trade scaffold** (reference stop, target, reward:risk), and a plain-English signal summary. Interpret it per `skills/analysis/quant-levels.md`. If the feed lacks high/low, the summary flags that ATR/ADX/Stoch/S-R are degraded to closes.
 
 Pass `--float <shares>` (from `get_equity_fundamentals`) to enable the exact turnover-decay **chip/cost-basis distribution (筹码分布)** instead of the recency-decay proxy.
 

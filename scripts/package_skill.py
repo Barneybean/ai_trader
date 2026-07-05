@@ -8,7 +8,7 @@ single source of truth on demand. Never hand-edit the zip; re-run this after any
     python3 scripts/package_skill.py            # -> dist/trading-desk.zip
     python3 scripts/package_skill.py --out /tmp # custom output dir
 
-The zip contains SKILL.md, references/, scripts/, AGENTS.md, PORTABILITY.md — everything the
+The zip contains SKILL.md, skills/, scripts/, AGENTS.md, PORTABILITY.md — everything the
 skill needs — and excludes .git, __pycache__, dist/, reports/ (run artifacts), and dotfiles.
 Upload dist/trading-desk.zip in Claude Desktop → Settings → Capabilities → Skills.
 """

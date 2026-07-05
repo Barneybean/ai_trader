@@ -4,7 +4,7 @@
 This reference makes that step a **structured three-perspective debate** before the veto — the
 mechanism TradingAgents uses so risk isn't one person's gut call but a contested decision. The
 Risk Judge is the *same* Risk Manager, now adjudicating three explicit stances and still bound
-by every hard gate and sizing cap in `review-rubric.md` and `mentor-method.md`. Nothing here
+by every hard gate and sizing cap in `skills/decision/review-rubric.md` and `skills/playbook/mentor-method.md`. Nothing here
 overwrites the desk's risk rules — it structures how they're applied.
 
 Borrowed-and-adapted from TradingAgents' `risk_mgmt` debators + risk judge.
@@ -13,7 +13,7 @@ Borrowed-and-adapted from TradingAgents' `risk_mgmt` debators + risk judge.
 
 ## The three lenses debate the *trade plan* (not the thesis)
 
-The thesis was already adjudicated by the Research Manager (`research-debate.md`). This debate
+The thesis was already adjudicated by the Research Manager (`skills/decision/research-debate.md`). This debate
 is about **the PM's proposed plan** — size, entry zone, stop, targets — for a name that already
 passed research. Each lens argues from a fixed stance and must rebut the others:
 
@@ -41,13 +41,13 @@ vote-count — the judge decides which lens the specific situation calls for (ag
 washout with a clean setup; conservative into a binary event or a hostile regime). The judge
 **must**:
 
-1. **Enforce the hard gates** (`review-rubric.md`): RR ≥ 2.0 net of costs, defined invalidation
+1. **Enforce the hard gates** (`skills/decision/review-rubric.md`): RR ≥ 2.0 net of costs, defined invalidation
    (prefer a non-price thesis-break too), no unwanted binary inside the hold, tradable/liquid,
    conviction ≥ Medium, worth-the-attention.
-2. **Enforce sizing caps** (`review-rubric.md` + `mentor-method.md`): ≤ **2% account risk** per
+2. **Enforce sizing caps** (`skills/decision/review-rubric.md` + `skills/playbook/mentor-method.md`): ≤ **2% account risk** per
    idea, ≤ **25%** per-name concentration (hard ceiling, size by conviction tier), sleeve budget
    not breached without a flag, no stacked correlated names.
-3. **Apply the regime tilt** (`macro-regime.md` / `crisis-playbook.md`): shrink Tactical and raise
+3. **Apply the regime tilt** (`skills/analysis/macro-regime.md` / `skills/analysis/crisis-playbook.md`): shrink Tactical and raise
    cash in risk-off; in a crisis, defense first, then phased asymmetric offense.
 4. **Honor the weakest-assumption rule:** size to the *weakest load-bearing assumption* the
    debate surfaced, not the upside.
@@ -57,7 +57,7 @@ washout with a clean setup; conservative into a binary event or a hostile regime
 - **Resize / restructure** — approve a modified plan (smaller starter, more tranches, tighter or
   wider stop, staged entry) with the reason stated.
 - **Veto** — the idea does not reach the user; log it with the failing gate. A vetoed idea is
-  still recorded in the internal log (and the journal, per `reflection-and-memory.md`).
+  still recorded in the internal log (and the journal, per `skills/decision/reflection-memory.md`).
 
 The Risk Judge keeps the veto power the desk already grants it. The three-lens debate just makes
 the veto *reasoned and contested* instead of a single reflex.

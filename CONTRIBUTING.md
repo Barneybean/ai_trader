@@ -7,7 +7,7 @@ better for everyone are very welcome.
 ## Ways to contribute
 
 - **Broker adapters** — implement the adapter interface for a new broker (IBKR, Futu, Alpaca, …).
-- **Sector playbooks** — add `references/sectors/<name>.md` from `references/sectors/_TEMPLATE.md`.
+- **Sector playbooks** — add `skills/analysis/sectors/<name>.md` from `skills/analysis/sectors/_TEMPLATE.md`.
 - **Engine improvements** — new indicators, better chip-distribution/S-R logic, tests.
 - **Skill / reference quality** — clearer methodology, better prompts, fixes.
 - **Docs & examples** — quickstarts, example (synthetic) reports, tutorials.
@@ -18,7 +18,7 @@ This is a public repo. **Never commit personal or account data** — account num
 connector/watchlist UUIDs, real positions, or a specific person's private book.
 
 - Put secrets in `config.local.toml` / `.env` (git-ignored).
-- Put anything personal in `references/private/` (git-ignored).
+- Put anything personal in `skills/private/` (git-ignored).
 - **Run the gate before every push:**
   ```bash
   bash scripts/install_hooks.sh     # once: installs pre-commit + pre-push PII hooks

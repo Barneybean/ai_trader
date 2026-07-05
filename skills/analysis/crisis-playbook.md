@@ -12,7 +12,7 @@ at once, and the desk must hold both:
    of a crash are rarely the leaders that went in.
 
 This file is the desk's operating manual for that regime. It sits above the normal rubric: when
-`macro-regime.md` classifies the run as **Crisis / regime-shock**, this doctrine overrides the
+`skills/analysis/macro-regime.md` classifies the run as **Crisis / regime-shock**, this doctrine overrides the
 default aggressiveness — defense first, then disciplined offense. The prime directive: **protect
 the base so you're still solvent and liquid enough to buy the bottom.** The investor who survives
 with dry powder wins the decade; the one who was fully invested and levered doesn't get to play.
@@ -83,7 +83,7 @@ Job = *own the new winners, not the last war's*.
 - Post-2000: not the dot-coms — the survivors (AMZN) and the next platform (Web 2.0, mobile).
 - Post-2008: not the banks — mega-cap tech / FAANG led the next decade.
 - Post-2020: the digital-acceleration and mRNA winners first, then the reopening/inflation trade.
-- Hand back to `thematic-waves.md`: the crisis *resets* the wave map — find the layer about to
+- Hand back to `skills/edge/thematic-waves.md`: the crisis *resets* the wave map — find the layer about to
   inflect in the *new* regime and be early. This is where the multi-baggers are minted.
 
 ---
@@ -122,7 +122,7 @@ Job = *own the new winners, not the last war's*.
 5. **Use options for convexity and to define risk.** Long calls/puts (or spreads) give leveraged
    upside with a known max loss — the right tool when the move is huge but the timing is uncertain.
    Respect that IV is expensive in a panic (you're paying up for vol); spreads help. Only within the
-   account's option level (`options-playbook.md`).
+   account's option level (`skills/playbook/options.md`).
 6. **Separate the durable change from the temporary pull-forward** (a variant-perception discipline).
    Some crisis winners are *permanently* re-rated (structural acceleration); others just pulled a few
    quarters of demand forward and round-trip hard when the world normalizes. Getting this right is
@@ -218,7 +218,7 @@ history rhymes, it doesn't repeat.
 
 ## 6. How the desk uses this
 
-1. **Trigger:** The Macro/Regime lens (`macro-regime.md`, `roles.md`) checks the §1 tells every run.
+1. **Trigger:** The Macro/Regime lens (`skills/analysis/macro-regime.md`, `skills/decision/roles.md`) checks the §1 tells every run.
    If it classifies the regime as **Crisis / regime-shock**, it invokes this playbook and names the
    **crisis type** (bubble-unwind / credit-seizure / exogenous-shock / policy-rupture / geopolitical)
    and the **phase** (§2). Both go at the top of the report.
@@ -231,5 +231,5 @@ history rhymes, it doesn't repeat.
    any shock-winner — whether the tailwind is **durable** or a **pull-forward** (§4.6).
 4. **Pre-commit the shopping list.** Maintain, in calm times, the "quality names I want and the crash
    prices I'd pay" list so Phase-2/3 buying executes a plan, not panic. Revisit it every crisis run.
-5. **Hand back to `thematic-waves.md`** in Phase 4 to position for the *new* regime's leadership — the
+5. **Hand back to `skills/edge/thematic-waves.md`** in Phase 4 to position for the *new* regime's leadership — the
    crisis resets the wave map, and the next multi-baggers are found there.

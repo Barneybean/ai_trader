@@ -1,6 +1,6 @@
 # Reflection & Memory — the desk learns from its own calls
 
-**What this upgrades.** The desk already keeps a track record (`review-rubric.md` → "Track
+**What this upgrades.** The desk already keeps a track record (`skills/decision/review-rubric.md` → "Track
 record"). This reference turns that passive log into TradingAgents' **reflection loop**: after a
 call's outcome is known, score it (raw return **and alpha vs SPY**), write one concrete lesson,
 store it, and **inject the relevant past lessons back into future runs** for the same ticker and

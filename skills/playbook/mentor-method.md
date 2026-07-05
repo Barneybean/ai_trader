@@ -4,7 +4,7 @@ A general, transferable method for **bottom-fishing quality at a discount and si
 discipline** — the "value + institutional-positioning" school distilled into rules the desk can
 apply. This ships as a *starter* reference; if you personally study a specific investor/mentor,
 capture their transferable ideas here and keep any of their private positions in a git-ignored
-overlay (`references/private/`), not in this shared file.
+overlay (`skills/private/`), not in this shared file.
 
 ## The core edge: think like the institution, not the crowd
 
@@ -63,4 +63,4 @@ not leftover.
   gambling. Puts are brief tactical hedges at highs, not a standing short book.
 
 > **Make it yours.** This is a starter method. Replace the specifics with the discipline you
-> actually follow, and keep any private book/track record in `references/private/` (git-ignored).
+> actually follow, and keep any private book/track record in `skills/private/` (git-ignored).

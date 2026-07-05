@@ -9,8 +9,8 @@ not fork or copy the instructions — read them in place.
 1. **Read [`SKILL.md`](SKILL.md) in full and follow it.** It is the complete charter for this
    desk: objective, the stock-selection funnel, operating principles, the pipeline, and the
    report format. Everything below is just wiring so the same `SKILL.md` runs anywhere.
-2. **Reference library:** [`references/`](references/) — start at
-   [`references/README.md`](references/README.md), the map of the whole machine.
+2. **Reference library:** [`skills/`](skills/) — start at
+   [`skills/README.md`](skills/README.md), the map of the whole machine.
 3. **Tools:** [`scripts/`](scripts/) — pure-Python-stdlib, no dependencies, run on any
    `python3`. `indicators.py` is the quant engine; `charts.py`/`build_report.py` render the
    report; `new_report.py` scaffolds it.
@@ -21,7 +21,7 @@ This skill was born in Claude Code (with a Robinhood connector and subagents). I
 to **degrade gracefully** when those aren't present. Read **"Portability & capability
 detection"** in `SKILL.md` and follow the branch that matches what you actually have:
 
-- **Market data** — if Robinhood MCP tools are loaded, use them (`references/data-and-execution.md`).
+- **Market data** — if Robinhood MCP tools are loaded, use them (`skills/execution/data-and-execution.md`).
   If not (the usual case in Codex), use the **web + manual-data fallback**: pull quotes /
   fundamentals / news via web search, and have the user save ~1yr of daily OHLCV as JSON or CSV
   for `scripts/indicators.py`. The scripts never call the broker themselves.
@@ -32,7 +32,7 @@ detection"** in `SKILL.md` and follow the branch that matches what you actually 
 - **Execution** — **never auto-execute.** Place an order only where a broker connector exists
   *and* the user has given an explicit, order-specific "yes" to a previewed ticket. With no
   connector, output the exact order ticket (symbol, side, qty, type, limit) for the user to
-  place manually. See the hard rule in `references/data-and-execution.md`.
+  place manually. See the hard rule in `skills/execution/data-and-execution.md`.
 
 ## Not financial advice
 

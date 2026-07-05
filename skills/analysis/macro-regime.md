@@ -8,7 +8,7 @@ it tilts the desk's short-term and long-term posture differently.
 
 Every desk run establishes the regime **once**, up front (Desk Head / Sentiment step),
 and every recommendation then states which way the macro wind is blowing for it. This
-operationalizes the user's own rate/yield house views (`house-views.md`) into a checklist.
+operationalizes the user's own rate/yield house views (`skills/playbook/house-views.md`) into a checklist.
 
 ---
 
@@ -58,7 +58,7 @@ the run. The regime tilts *which ideas even belong on the page*:
   credit spreads blowing out, cross-asset correlation → 1 (forced de-leveraging), circuit
   breakers, and a regime catalyst (bursting bubble, credit seizure, exogenous shock like a
   pandemic/war, or a policy rupture like a tariff regime or market-moving social-media
-  policy). → **Switch to `references/crisis-playbook.md`.** Defense first (no leverage,
+  policy). → **Switch to `skills/analysis/crisis-playbook.md`.** Defense first (no leverage,
   raise cash, liquidity + smaller size), then disciplined offense (barbell of cash/quality
   + convex asymmetric bets, buy survivors in tranches, own the shock's direct
   beneficiaries). Name the **crisis type** and the **phase** (de-risk → capitulation →
@@ -91,7 +91,7 @@ The same macro fact points different directions on different horizons — say bo
   Core setup. Say "the macro is the reason it's cheap, and the reason it re-rates."
 - Long-term theses should be robust to the regime, not dependent on one Fed outcome. If a
   Core idea only works if the Fed cuts three times, that's a fragile, overfit thesis
-  (`strategies.md`).
+  (`skills/decision/strategies.md`).
 
 ---
 
@@ -99,7 +99,7 @@ The same macro fact points different directions on different horizons — say bo
 
 Macro sets the discount rate; the **company's own strategy and product roadmap** determine
 whether it can grow *through* that rate. The Fundamental Analyst supplies these (see
-`roles.md`); the macro lens contextualizes them: a company executing a strong roadmap into
+`skills/decision/roles.md`); the macro lens contextualizes them: a company executing a strong roadmap into
 an easing cycle is a double tailwind; the same roadmap into a tightening cycle needs
 self-funding and pricing power to survive. Note when a name's growth is **rate-sensitive**
 (unprofitable, long-duration cash flows — hurt by high rates) vs **rate-resilient**
@@ -118,7 +118,7 @@ hold. Examples of the shape:
 > Long-term neutral-to-positive: profitable and self-funding, so less rate-sensitive than
 > peers; a 2026 cutting cycle would be upside, not a dependency.
 
-Legibility is the goal: the user thinks in rates, yields, and rotation (`house-views.md`),
+Legibility is the goal: the user thinks in rates, yields, and rotation (`skills/playbook/house-views.md`),
 so the desk's macro reasoning should be stated in exactly those terms — and always
 **validate the heuristic against the live data** for the specific name and day before
 trusting it.

@@ -6,7 +6,7 @@ here, and every runtime sees the change (Claude Desktop after a one-command re-p
 
 ```
         ┌─────────────────────── ~/Desktop/trading-desk (SOURCE OF TRUTH) ───────────────────────┐
-        │   SKILL.md  +  AGENTS.md  +  references/  +  scripts/                                    │
+        │   SKILL.md  +  AGENTS.md  +  skills/  +  scripts/                                    │
         └───────────────┬──────────────────────┬───────────────────────────┬─────────────────────┘
    symlink ~/.claude/skills/       reads AGENTS.md in the        re-packaged zip (regenerated,
    trading-desk  ->  source        repo dir (or ~/.codex link)    never hand-edited)

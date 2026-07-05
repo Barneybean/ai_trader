@@ -9,9 +9,9 @@ mapping the wave, anticipating the **next** constraint before consensus, buying 
 under-covered beneficiary at its inflection, and sizing for asymmetry. This file is how.
 
 This lens is applied **once per run** (like the Macro lens) to locate the wave front, and
-it feeds candidates into the pipeline. It pairs with `references/variant-perception.md`
+it feeds candidates into the pipeline. It pairs with `skills/edge/variant-perception.md`
 (the next-to-inflect layer is where non-consensus edge concentrates) and
-`references/sector-playbooks.md` (the per-industry KPIs for each layer).
+`skills/analysis/sector-playbooks.md` (the per-industry KPIs for each layer).
 
 ---
 
@@ -123,7 +123,7 @@ Study prior revolutions for *who rose, who fell, and why* — the structure repe
    which is about to inflect next, and which prior-wave layers are late/consensus (fade or
    avoid chasing).
 2. **Find the under-covered beneficiary** of the next-to-inflect layer — usually a
-   second-order supplier, a bottleneck component, or an orphan (`variant-perception.md`
+   second-order supplier, a bottleneck component, or an orphan (`skills/edge/variant-perception.md`
    taxonomy #4/#5). Confirm with the sector playbook's KPIs.
 3. **Time to the inflection tell,** not the narrative peak — orders, lead times, capex
    guides, PPA/design-win announcements. A great theme at a blown-out price is still a bad
@@ -133,7 +133,7 @@ Study prior revolutions for *who rose, who fell, and why* — the structure repe
    **scale as the thesis confirms** (each catalyst that hits earns more size). A basket of
    several small asymmetric bets — where a couple win big — is the vehicle, never one all-in
    gamble. Respect the per-idea risk cap and the 25% concentration cap
-   (`review-rubric.md`); the convexity, not oversizing, is what makes it work.
+   (`skills/decision/review-rubric.md`); the convexity, not oversizing, is what makes it work.
 5. **Define invalidation and expect drawdowns.** Category-definers draw down 40–60% on the
    way up; pre-commit to the thesis-break conditions (not just price) so a drawdown doesn't
    shake you out of a winner or trap you in a loser.

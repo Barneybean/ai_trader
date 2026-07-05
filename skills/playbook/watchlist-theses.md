@@ -3,7 +3,7 @@
 Specific names **you** track, each with a written thesis and a concrete invalidation, so the desk
 re-validates them against live data before acting instead of re-deriving from scratch. This ships
 with illustrative rows — replace them with your own, or keep your real list in a git-ignored
-`references/private/watchlist-theses.md`.
+`skills/private/watchlist-theses.md`.
 
 ## Format
 

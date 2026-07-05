@@ -5,7 +5,7 @@ different things — a semi on **process-node yield & customer wins**, a clinica
 **trial readouts & months of cash**, a fintech on the **product-led flywheel**. Route each
 candidate to the playbook for its industry (read `sector`/`industry` from
 `get_equity_fundamentals`), and answer that playbook's questions from primary sources before
-forming a view. This is the engine behind `variant-perception.md`: most under-priced edges live
+forming a view. This is the engine behind `skills/edge/variant-perception.md`: most under-priced edges live
 in a sector-specific fact the generic screen never sees.
 
 ## Coverage (one file per sector — scalable)
@@ -27,7 +27,7 @@ Don't grow a monolith. If a name spans sectors, use both.
 - **Intel — a semis process/catalyst story** (`sectors/semiconductors.md`): is 18A working, how
   big if it works, how likely (handicapped), TSMC N2 gap, CHIPS/gov backing, foundry customers →
   **bull/base/bear scenario valuation**. Plus the CEO's $23M open-market buy at ~$23
-  (`insider-and-smart-money.md`).
+  (`skills/edge/smart-money.md`).
 - **Moderna at ~$20 — a biotech pipeline + cash-floor story** (`sectors/biotech-pharma.md`):
   rNPV of the pipeline + cash ≈/> market cap (pipeline priced at zero) + catalysts → deep
   undervaluation. Ran to $70+.

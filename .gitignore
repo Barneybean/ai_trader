@@ -229,8 +229,8 @@ secrets.toml
 
 # Bring-your-own personal overlay — anything you drop here stays local to your fork.
 # The desk reads references/private/*.md if present. Commit nothing personal.
-references/private/
-skill/references/private/
+skills/private/
+
 
 # Personal trade data — a run's outputs, not framework. (The starter ships empty dirs.)
 journal/decisions.jsonl

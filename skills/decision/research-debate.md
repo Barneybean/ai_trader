@@ -4,7 +4,7 @@
 reference makes that step a **structured, multi-round debate with an adjudicating Research
 Manager** — the mechanism TradingAgents uses to stop a thesis from winning by assertion. It
 does **not** replace the desk's edge doctrine: the *content* of the debate is still the
-`variant-perception.md` thesis and the `thesis-stress-test.md` attack. This just makes the
+`skills/edge/variant-perception.md` thesis and the `skills/decision/stress-test.md` attack. This just makes the
 adversarial process iterative and forces a committed verdict instead of a mushy "looks good."
 
 Borrowed-and-adapted from TradingAgents' researcher team + `research_manager`; kept subordinate
@@ -18,7 +18,7 @@ to this desk's rubric, sleeves, and mentor method.
   generic optimism): what the market misses, why it isn't priced, the catalyst that closes the
   gap. Cites the specialists' evidence (fundamentals, quant levels, insider flows, wave
   position).
-- **Bear Researcher** — argues the short/avoid case. Its job is the `thesis-stress-test.md`
+- **Bear Researcher** — argues the short/avoid case. Its job is the `skills/decision/stress-test.md`
   attack made adversarial: the two-sided version of every catalyst, the weakest load-bearing
   assumption, disconfirming evidence, the pre-mortem, and the consensus view the bull is
   fading (steelmanned — you can only fade a view you fully understand).
@@ -70,9 +70,9 @@ stalemate, not for indecision. A desk that always says "hold" is useless.
 ## Guardrails (so this doesn't overwrite the desk's edge)
 
 - The debate **serves** the CIO gate and rubric — it does not replace them. A Strong-Buy stance
-  still has to clear every hard gate in `review-rubric.md` (RR ≥ 2, defined invalidation,
+  still has to clear every hard gate in `skills/decision/review-rubric.md` (RR ≥ 2, defined invalidation,
   sleeve-appropriate edge, conviction ≥ Medium).
-- The bear's attack **is** the `thesis-stress-test.md`; don't run them as two separate things —
+- The bear's attack **is** the `skills/decision/stress-test.md`; don't run them as two separate things —
   the stress-test is the bear's ammunition.
 - Keep the desk's voice: variant perception, secular-wave position, chip/phase read, and the
   mentor's "buy weakness in quality" lens are the *substance* being debated. This mechanism is

@@ -40,7 +40,7 @@ independent roles that argue, stress-test, and vote — and that mostly answers 
 bar today."*
 
 It is **agent-driven**: the intelligence lives in prompt/skill files an AI coding agent reads
-([`SKILL.md`](SKILL.md) + [`references/`](references/)), backed by pure-Python engines for the
+([`SKILL.md`](SKILL.md) + [`skills/`](skills/)), backed by pure-Python engines for the
 deterministic math. Run it under whatever model and coding agent you like — **no API key required**
 for the default mode.
 
@@ -73,7 +73,7 @@ through.
                           │  reads
                           ▼
    ┌───────────────────────────────────────────────────────────────┐
-   │  THE BRAIN  —  SKILL.md + references/                          │
+   │  THE BRAIN  —  SKILL.md + skills/                          │
    │  edge doctrine → analysis engines → discipline → execution    │
    └───────────────┬───────────────────────────────────────────────┘
                    │  orchestrates the pipeline
@@ -95,20 +95,20 @@ through.
 ```
 
 ### 👥 Analyst Team
-Four independent lenses, each doing primary-source work (details in [`references/roles.md`](references/roles.md)):
+Four independent lenses, each doing primary-source work (details in [`skills/decision/roles.md`](skills/decision/roles.md)):
 - **Fundamental** — business quality, valuation, strategy & roadmap, management read, scenario targets.
 - **Quant** — trend/momentum/volume, the **support & resistance ("pressure") map**, ATR-scaled RR, and the **chip / cost-basis distribution (筹码)** + Wyckoff phase.
 - **Sentiment / News** — dated catalysts, positioning, insider flows, and *what isn't in the narrative yet*.
 - **Macro / Regime** — Fed path, yields, VIX, breadth; a crisis playbook when the tape breaks.
 
 ### ⚔️ Research Debate  *(bull vs bear → Research Manager)*
-A **multi-round** debate ([`references/research-debate.md`](references/research-debate.md)): the bull argues the variant thesis, the bear runs the stress-test as live ammunition, each must rebut the other's strongest point — then a Research Manager **commits to a stance** (Strong Buy … Sell) and never defaults to "Hold."
+A **multi-round** debate ([`skills/decision/research-debate.md`](skills/decision/research-debate.md)): the bull argues the variant thesis, the bear runs the stress-test as live ammunition, each must rebut the other's strongest point — then a Research Manager **commits to a stance** (Strong Buy … Sell) and never defaults to "Hold."
 
 ### 🛡️ Risk Committee  *(three lenses → Risk Judge)*
-Aggressive, Neutral, and Conservative lenses debate the *trade plan* ([`references/risk-debate.md`](references/risk-debate.md)); the Risk Judge adjudicates to **approve / resize / veto**, enforcing hard gates (RR ≥ 2, ≤ 2% risk/idea, ≤ 25% per-name, regime tilt).
+Aggressive, Neutral, and Conservative lenses debate the *trade plan* ([`skills/decision/risk-committee.md`](skills/decision/risk-committee.md)); the Risk Judge adjudicates to **approve / resize / veto**, enforcing hard gates (RR ≥ 2, ≤ 2% risk/idea, ≤ 25% per-name, regime tilt).
 
 ### 🧠 Reflection & Memory  *(the desk learns)*
-Every call is logged; when it matures it's scored **raw + alpha vs SPY** and distilled to one reusable lesson, recalled on the next similar setup ([`references/reflection-and-memory.md`](references/reflection-and-memory.md)). *(Inspired by TradingAgents' reflection loop.)*
+Every call is logged; when it matures it's scored **raw + alpha vs SPY** and distilled to one reusable lesson, recalled on the next similar setup ([`skills/decision/reflection-memory.md`](skills/decision/reflection-memory.md)). *(Inspired by TradingAgents' reflection loop.)*
 
 ---
 
@@ -167,12 +167,12 @@ The repo ships **generic starter templates** — replace them with your own edge
 
 | File | Put here |
 |---|---|
-| `references/house-views.md` | Your macro/technical heuristics |
-| `references/watchlist-theses.md` | Names you track + thesis + invalidation |
-| `references/mentor-method.md` · `mentor-casebook.md` | The method/investor you study |
-| `references/sectors/` | Add a sector playbook via `sectors/_TEMPLATE.md` |
+| `skills/playbook/house-views.md` | Your macro/technical heuristics |
+| `skills/playbook/watchlist-theses.md` | Names you track + thesis + invalidation |
+| `skills/playbook/mentor-method.md` · `skills/playbook/mentor-casebook.md` | The method/investor you study |
+| `skills/analysis/sectors/` | Add a sector playbook via `sectors/_TEMPLATE.md` |
 
-**Keep private content private.** Anything under `references/private/` is **git-ignored** — put a
+**Keep private content private.** Anything under `skills/private/` is **git-ignored** — put a
 confidential watchlist, a paid newsletter's live book, or a private deal there and it never lands in
 your fork's public history.
 
@@ -207,7 +207,7 @@ See the [roadmap](#️-roadmap) and [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 Publishing trading tooling means **never leaking your account or positions.** This repo enforces it:
 
-- **Secrets live only in git-ignored files** — `config.local.toml`, `.env`, `references/private/`.
+- **Secrets live only in git-ignored files** — `config.local.toml`, `.env`, `skills/private/`.
 - **A scanner** — [`scripts/scan_pii.py`](scripts/scan_pii.py) — flags account numbers, keys, connector
   UUIDs, and personal identifiers in tracked files.
 - **A three-layer gate** blocks PII from reaching the public branch:

@@ -48,6 +48,6 @@ Backtesting frameworks exist because a rule that looks great in hindsight usuall
 
 - **Gain** comes from the rank-and-rotate concentration (own the best names) plus letting winners run via trailing stops and partial scale-outs.
 - **Risk** is capped by the fixed-dollar stop, the 2% per-idea rule, time stops on dead trades, and the turnover limit preventing overtrading.
-- **Tax/cost** is protected by the turnover budget (fewer taxable events), the bias toward holding Core winners into long-term treatment, and netting costs into every RR — all detailed in `tax-aware.md`.
+- **Tax/cost** is protected by the turnover budget (fewer taxable events), the bias toward holding Core winners into long-term treatment, and netting costs into every RR — all detailed in `skills/decision/tax-aware.md`.
 
 The desk should explicitly reference which of these levers a given recommendation is pulling, so the user sees the trade-off being made.

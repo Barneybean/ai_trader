@@ -85,12 +85,12 @@ long-side stop and target so the PM has a volatility-anchored default; the PM th
 - **Stop = volatility- and structure-aware.** Default reference = the tighter of
   `1.5×ATR` below entry or just under the nearest structural support. This keeps the stop
   outside normal daily noise (an ATR-tight stop gets shaken out) while respecting the real
-  floor. A stop is a **dollar statement of risk**, not a chart doodle (see `strategies.md`).
+  floor. A stop is a **dollar statement of risk**, not a chart doodle (see `skills/decision/strategies.md`).
 - **Target = the upper pressure.** Primary target defaults to the nearest resistance zone —
   that's where the move is statistically likely to stall. Stack additional targets on the
   `resistance_ladder` for scale-outs.
 - **Reward:Reward = `reward_risk`.** `(target − entry) / (entry − stop)`. **The hard gate
-  is RR ≥ 2.0 net of costs** (`review-rubric.md`). If the scaffold shows RR<2 — usually
+  is RR ≥ 2.0 net of costs** (`skills/decision/review-rubric.md`). If the scaffold shows RR<2 — usually
   because price is right under heavy resistance — that is the quant telling you *the entry
   is bad here*; wait for a pullback to support (better entry, more room to the ceiling) or
   pass. Don't force it by widening the target past a real level.
@@ -102,13 +102,13 @@ setup quality and regime, and stay humble:
   confluence, volume confirming): higher base rate (~50–60%).
 - Counter-trend / knife-catch / breakout in chop: lower (~35–45%) — demand a bigger RR to
   compensate. A 3:1 RR at 40% wins is still strongly positive EV; a 1.5:1 at 45% is not.
-- **Validate the threshold against this name's own history** (`strategies.md`): before
+- **Validate the threshold against this name's own history** (`skills/decision/strategies.md`): before
   leaning on "RSI<30 bounces here," glance at how it actually behaved at past oversold
   points via the historicals. If the pattern didn't hold, distrust it.
 
 **Position size follows the stop, not the other way around.** Given the per-idea 2% risk
 cap: `shares = (0.02 × account) / (entry − stop)`. Then check the result against the
-concentration cap (`review-rubric.md`). Show the math.
+concentration cap (`skills/decision/review-rubric.md`). Show the math.
 
 ---
 

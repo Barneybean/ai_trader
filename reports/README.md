@@ -44,7 +44,7 @@ python3 scripts/build_report.py reports/Trading-Desk-Report-2026-07-03.md
 ```
 
 `new_report.py` builds only the scaffold; the analysis is filled by the desk run.
-`charts.py` and `build_report.py` are documented in `references/data-and-execution.md`.
+`charts.py` and `build_report.py` are documented in `skills/execution/data-and-execution.md`.
 
 ## Publishing
 

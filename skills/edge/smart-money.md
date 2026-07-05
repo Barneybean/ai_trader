@@ -5,8 +5,8 @@ Among the highest-signal evidence the desk has — especially **at turning point
 institutions act on conviction and information the market hasn't priced yet. A CEO buying
 millions at a multi-year low is a different kind of evidence than an analyst upgrade. Weight
 these heavily as **corroborating** evidence (rarely standalone), and most heavily at
-inflections. This ties directly to `references/variant-perception.md` (insider action often
-*is* the tell that a gap exists) and the `mentor-method.md` management read.
+inflections. This ties directly to `skills/edge/variant-perception.md` (insider action often
+*is* the tell that a gap exists) and the `skills/playbook/mentor-method.md` management read.
 
 > Worked signals the user tracks:
 > - **Intel** — CEO bought ~**$23M** open-market at ~**$23** as the turnaround began. CEO conviction at a bottom.

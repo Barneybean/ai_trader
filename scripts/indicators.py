@@ -24,7 +24,7 @@ support below and nearest resistance above the current price, with strength and
 distance), ATR-based stop/target scaffolding, and a plain-English signal summary.
 
 Everything downstream (the Quant role, the trade plan) should read levels from
-this output rather than eyeballing a chart. See references/quant-analysis.md for
+this output rather than eyeballing a chart. See skills/analysis/quant-levels.md for
 how to interpret it.
 """
 
