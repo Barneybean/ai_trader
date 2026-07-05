@@ -6,28 +6,35 @@ better for everyone are very welcome.
 
 ## Ways to contribute
 
-- ⭐ **Sector playbooks** — the flagship (see below): encode how your industry actually prices.
+- ⭐ **Playbooks** — sector/industry or single-stock (see below).
 - **Strategy & edge skills** — patterns for `skills/decision/strategies.md`, signals for `skills/edge/`.
 - **Broker adapters** — implement the adapter interface for a new broker (IBKR, Futu, Alpaca, …).
 - **Engine improvements** — new indicators, better chip-distribution/S-R logic, tests.
 - **Skill / reference quality** — clearer methodology, better prompts, fixes.
 - **Docs & examples** — quickstarts, example (synthetic) reports, tutorials.
 
-## ⭐ The flagship contribution: industry playbooks
+## ⭐ The flagship contribution: playbooks
 
-The long-term bet of this project is a **knowledge commons**. A desk is only as good as its
-specialists, and no single person knows how every industry prices — a semis veteran reads node
-yields and design wins, a biotech hand reads trial design and cash runway, a bank analyst reads
-credit cycles and book-value quality. If you've worked in or seriously traded a sector, that
-knowledge is the contribution **only you** can make — and every desk built on this repo gains an
-analyst it didn't have yesterday.
+The idea behind this project is a **knowledge commons**: no single person knows how every industry
+or name prices — a semis veteran reads node yields and design wins, a biotech hand reads trial
+design and cash runway, a bank analyst reads credit cycles and book-value quality. Playbooks are
+how that knowledge gets into the base desk, where every fork reads it.
+
+Playbooks come at two altitudes, same template discipline and same quality bar ("sector" and
+"industry" mean the same thing here):
+
+- **Sector / industry** — `skills/analysis/sectors/<name>.md`: how an industry prices.
+- **Single stock** — `skills/analysis/stocks/<TICKER>.md`: how a specific name trades — repeating
+  setups, catalyst calendar, valuation ranges, dated episodes. **Knowledge, never a live call**
+  (live theses stay in `skills/playbook/watchlist-theses.md` or a private overlay).
 
 **How:**
 
-1. Check the coverage map + wanted list: [`skills/analysis/sectors/README.md`](skills/analysis/sectors/README.md).
-2. Open a **📚 playbook proposal** issue to claim the sector (so nobody duplicates work).
-3. Copy `skills/analysis/sectors/_TEMPLATE.md` → `sectors/<your-sector>.md` and answer all seven fields.
-4. Register it: add a row in `skills/analysis/sector-playbooks.md` and flip the row in `sectors/README.md`.
+1. Check the coverage maps: [`skills/analysis/sectors/README.md`](skills/analysis/sectors/README.md)
+   (includes the wanted list) or [`skills/analysis/stocks/README.md`](skills/analysis/stocks/README.md).
+2. Open a **playbook proposal** issue to claim it (so nobody duplicates work).
+3. Copy the matching `_TEMPLATE.md` and answer all seven fields.
+4. Register it in the coverage map (sectors also get a row in `skills/analysis/sector-playbooks.md`).
 5. Open a PR — the template's checklist walks the quality bar below.
 
 ### The playbook quality bar
@@ -39,11 +46,11 @@ A playbook merges when it is:
 - **Primary-sourced** — points at the filings, databases, and standards bodies where the data appears *first*.
 - **Dated** — catalysts are tied to real, recurring events (PDUFA dates, capacity announcements, rate decisions…).
 - **Illustrated** — at least one named, worked archetype showing the pattern paying off (or blowing up).
-- **General** — trading craft, not your positions. No PII, no paid content, nothing you lack the right to share.
+- **General** — trading craft, not your positions. No PII, no paid content, nothing you lack the
+  right to share. For stock playbooks: episodes are dated history, never live calls.
 
-The same bar applies to strategy patterns and edge skills: specific, sourced, general. Reviews are
-done in the open, the way the desk reviews a trade — expect a bull/bear pass on your playbook, and
-know that revision requests mean the bar is real, not that you're unwelcome.
+The same bar applies to strategy patterns and edge skills: specific, sourced, general. Reviews
+happen in the open, the way the desk reviews a trade — expect a bull/bear pass on your playbook.
 
 ## 🔒 The one hard rule: no PII
 
