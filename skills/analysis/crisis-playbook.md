@@ -227,3 +227,4 @@ history rhymes, it doesn't repeat.
    prices I'd pay" list so Phase-2/3 buying executes a plan, not panic. Revisit every crisis run.
 5. **Hand back to `skills/edge/thematic-waves.md`** in Phase 4 to position for the *new* regime's
    leadership — the crisis resets the wave map, and the next multi-baggers are found there.
+
