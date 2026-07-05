@@ -137,3 +137,4 @@ way.
   explicit confirmation, places equity/option orders in the configured tradable account.
 - If the connector returns errors or stale data, surface that plainly; do not paper over gaps with
   guesses.
+
