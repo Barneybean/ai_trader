@@ -28,3 +28,4 @@ never fund it from money earmarked for the tradable account.
 
 > **Privacy:** term sheets and founder data are confidential. Keep specific deals out of any repo
 > you intend to publish.
+
