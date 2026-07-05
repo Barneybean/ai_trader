@@ -39,3 +39,4 @@ The judge keeps its veto power; the debate just makes the veto *reasoned and con
 ## Guardrail
 
 Risk **process**, not new risk **rules** — the numbers come from the rubric and mentor method. If a lens argues for what the caps forbid (e.g. 30% in one name because "it's a generational bet"), the judge cites the cap and overrules it. Convex asymmetric bets are sized per the rubric's asymmetric-bet section (small starter, scale on confirmation, bounded downside), not by waiving the cap.
+
