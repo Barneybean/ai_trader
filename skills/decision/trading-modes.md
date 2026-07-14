@@ -12,18 +12,16 @@ when the file is missing or unreadable: `semi`.
 
 ## The three modes
 
-### `full` — the desk decides and executes
+### `full` — validate-only autonomous shadow
 
-For the explicitly configured execution account only, the desk places orders without a confirm round-trip—strictly
-inside the playbook gates:
+The desk may decide what it would do, but it does not place an order. Every fully specified ticket
+must pass `scripts/execution/gateway.py`; allowed tickets are reported as validated proposals and
+rejects are written to the private operational issue log. This lets users test autonomous decisions
+without granting autonomous broker authority.
 
-- sizing caps and the sufficiency gate (`skills/decision/sufficiency-gate.md`) apply to
-  every ticket;
-- no new position without a logged thesis and an invalidation level;
-- borderline is proposed, not executed. If the analysis lands at medium conviction or the
-  sufficiency gate is only just met, output a ticket for approval instead of placing it;
-- every order and fill is reported to the user immediately — exact ticket, status, and a
-  1–2 line rationale.
+Live placement stays disabled until broker integration, pre/post-trade reconciliation, durable
+idempotency, kill-switch verification, and sandbox tests are complete. See
+`docs/plans/full-auto.md` and ADR-0014.
 
 ### `semi` — numbered tickets, the user approves
 
@@ -51,8 +49,9 @@ onward.
   record, and reported with fill status.
 - If broker tools are unavailable, say so and mark tickets `execution pending broker auth` —
   never pretend an order was placed.
-- Every report states the active mode in its orders section, so the reader knows whether
-  tickets are proposals (`manual`/`semi`) or a mix of executed + proposed (`full`).
+- Every report states the active mode in its orders section, so the reader knows whether tickets
+  require per-order confirmation (`manual`), numbered approval (`semi`), or are validate-only
+  autonomous proposals (`full`).
 
 ## Switching
 
@@ -63,7 +62,7 @@ onward.
 
 Mode changes are event-logged by the bridge / local desk logger, and the `desk-mode.json`
 file records what was set and when. When the user asks a session to switch modes, restate what
-the new mode authorizes before writing it — especially entering `full`.
+the new mode authorizes before writing it—especially that `full` does not authorize placement.
 
 Cross-links: execution mechanics in `skills/execution/data-and-execution.md` · sizing and
 review bar in `skills/decision/review-rubric.md` + `sufficiency-gate.md` · channel phrasing

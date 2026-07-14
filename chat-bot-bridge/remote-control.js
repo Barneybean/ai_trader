@@ -41,7 +41,7 @@ export function formatPhoneHelp() {
     '/mode — show the current trading mode',
     '/mode manual — require confirmation for every exact order; kill switch',
     '/mode semi — execute only specifically approved numbered tickets',
-    '/mode full — playbook-gated autonomous execution on the configured execution account',
+    '/mode full — validate autonomous proposals without placing broker orders',
     '',
     'HELP',
     '/help — show this reference',

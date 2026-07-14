@@ -223,10 +223,13 @@ or execution rules.
 
 ### Trading autonomy
 
-The public default is `semi` (numbered tickets the user approves before anything executes); `manual` is the per-order-confirm kill switch. `full`, if ever
-published, must be experimental and disabled by default, with explicit opt-in, broker/account
-scope, sufficiency and risk gates, a kill switch, immediate order/fill reporting, no transfers, and
-paper/sandbox testing. Public documentation must never promise automatic profit.
+The public default is `semi` (numbered tickets the user approves before anything executes);
+`manual` is the per-order-confirm kill switch. Experimental `full` is published only as a
+validate-only shadow: deterministic checks and private reject logging are allowed, but broker
+placement is not. Enabling live autonomy requires explicit opt-in, broker/account scope,
+reconciliation, durable idempotency, sufficiency and risk gates, a verified kill switch, immediate
+order/fill reporting, no transfers, and paper/sandbox tests. Public documentation must never
+promise automatic profit.
 
 ### Named investment methods and case studies
 

@@ -21,3 +21,17 @@ private_refs = "skills/private"   # optional bring-your-own overlay (git-ignored
 [policy]
 # ask | taxable | tax_advantaged | mixed — confirm with the user; never infer account tax status.
 tax_treatment = "ask"
+
+[risk]
+# Empty means any uppercase equity symbol may be validated. Add only symbols you intend to test.
+allowed_symbols = []
+risk_per_trade_pct = 1.0
+max_trade_notional_pct = 20.0
+max_position_pct = 25.0
+max_group_pct = 60.0
+daily_loss_limit_pct = 5.0
+max_snapshot_age_s = 900.0
+
+# Optional fictional example. Replace it in config.local.toml with your own exposure groups.
+[risk.groups]
+example_theme = ["XYZ", "ABC"]

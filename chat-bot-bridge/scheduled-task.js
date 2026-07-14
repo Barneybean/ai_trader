@@ -3,7 +3,7 @@ import { scheduledBrokerPreflightPrompt } from './broker-preflight.js';
 export const SCHEDULE_KINDS = ['premarket', 'postmarket', 'test'];
 
 const MODE_TASK = {
-  full: 'FULL-AUTO: after the report, execute playbook-compliant tickets on the configured execution account and include each fill + rationale.',
+  full: 'FULL SHADOW: validate each proposed ticket with scripts/execution/gateway.py and report VALIDATED PROPOSAL or BLOCKED with reasons. Never place an order.',
   semi: 'SEMI-AUTO: end with numbered proposed tickets so the user can reply "approve N".',
   manual: 'MANUAL: advise only; no tickets are executed from this run.',
 };

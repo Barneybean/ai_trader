@@ -54,7 +54,7 @@ Telegram · Discord · WhatsApp
 - **Dedup + serialization.** Message IDs are deduplicated and prompts run one at a time, so two
   agents never operate the same trading desk concurrently.
 - **Order discipline is mode-gated** (see Trading modes below): manual = per-order confirm,
-  semi = numbered-ticket approval, full = autonomous within playbook gates. In **every** mode
+  semi = numbered-ticket approval, full = validate-only autonomous shadow. In **every** mode
   only the locally configured execution account is tradable; all other accounts remain read-only,
   and money movement (transfers/ACH) is forbidden.
 - **Secrets stay in `.env`** (git-ignored), as do `state.json` and `logs/`.
@@ -120,10 +120,8 @@ switch; this bridge's `/mode` command and its injected chat rules are consumers.
 A `/mode` command on your phone switches between three levels of execution authority,
 applied from the very next message and the next scheduled run:
 
-- **/mode full** — the desk decides and executes on the configured execution account without asking,
-  strictly inside the playbook gates (sizing, sufficiency, logged thesis + invalidation
-  level); borderline calls get proposed instead of executed, and every fill is messaged to
-  you immediately with the rationale.
+- **/mode full** — the desk decides what it would do, runs each ticket through the deterministic
+  execution gateway, and reports `VALIDATED PROPOSAL` or `BLOCKED`; it never places an order.
 - **/mode semi** — the public default; numbered, fully-specified tickets; you
   reply `approve 1` or `approve all` and exactly those execute. Ad-hoc orders still get one
   confirm round-trip each.

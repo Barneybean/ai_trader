@@ -115,6 +115,10 @@ def smoke_commands(files: list[str]) -> tuple[list[tuple[str, list[str], Path]],
     touches_journal = any(f.startswith("scripts/journal/") for f in files)
     touches_report = any(f.startswith("scripts/report/") for f in files)
     touches_ops = any(f.startswith("scripts/ops/") for f in files)
+    touches_execution = any(f.startswith("scripts/execution/") for f in files)
+    touches_issue_log = any(f in {
+        "scripts/lib/issue_log.py", "scripts/lib/test_issue_log.py"
+    } for f in files)
     touches_bridge = any(f.startswith("chat-bot-bridge/") for f in files)
     touches_skills = any(f.startswith("skills/") or f in {"SKILL.md"} for f in files)
     touches_docs = any(f.startswith("docs/") for f in files) or has_md
@@ -202,6 +206,23 @@ def smoke_commands(files: list[str]) -> tuple[list[tuple[str, list[str], Path]],
             ROOT,
         ))
         review_notes.append("Check the operator gates: smoke, PII, and mode behavior.")
+
+    if touches_execution:
+        commands.append((
+            "execution gateway tests",
+            [sys.executable, "scripts/execution/test_gateway.py"],
+            ROOT,
+        ))
+        review_notes.append(
+            "Confirm the execution gateway remains validate-only and fails closed."
+        )
+
+    if touches_issue_log:
+        commands.append((
+            "operational issue-log tests",
+            [sys.executable, "scripts/lib/test_issue_log.py"],
+            ROOT,
+        ))
 
     if touches_bridge:
         js_files = [f for f in files if f.startswith("chat-bot-bridge/") and f.endswith(".js")]

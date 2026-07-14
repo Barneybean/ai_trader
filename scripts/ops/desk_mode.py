@@ -13,8 +13,7 @@ gates, approval grammar) is skills/decision/trading-modes.md.
 Modes:
   manual  advise-only; every order needs its own confirm round-trip (kill switch)
   semi    numbered proposed tickets; the user's "approve N / all" executes them
-  full    configured execution account only: desk decides and executes within playbook gates;
-          borderline calls proposed, every fill reported immediately + rationale
+  full    validate-only autonomous shadow; tickets are gated and reported, never placed
 
 Default (missing/unreadable file): semi.
 """
@@ -31,7 +30,7 @@ MODE_FILE = os.path.join(ROOT, "desk-mode.json")
 MODES = {
     "manual": "MANUAL — advise only; every order needs an explicit per-order confirm (kill switch)",
     "semi": "SEMI-AUTO — reports propose numbered tickets; your approval reply executes them",
-    "full": "FULL-AUTO — configured execution-account trades execute autonomously within playbook gates; every fill reported immediately with rationale",
+    "full": "FULL SHADOW — autonomous decisions are validated and reported, but never placed",
 }
 DEFAULT = "semi"
 
@@ -53,7 +52,7 @@ def set_mode(mode, source="cli"):
                "source": source}
     # atomic write — the bridge and scheduled runs read this file concurrently;
     # a reader must never catch a truncated file (parse failure falls back to
-    # "manual", the least-permissive safe mode)
+    # the public default, "semi", which still requires ticket approval)
     tmp = MODE_FILE + ".tmp"
     with open(tmp, "w") as f:
         json.dump(payload, f, indent=2)
@@ -83,8 +82,8 @@ def main():
             print(f"Mode set: {args[1].upper()}\n{MODES[args[1]]}\n"
                   "Applies from the next desk action and the next scheduled run.")
             if args[1] == "full":
-                print("\n!! FULL-AUTO executes in the configured execution account without asking. "
-                      "Kill switch: desk_mode.py set manual (or /mode manual from the phone).")
+                print("\nFULL SHADOW is validate-only: it cannot place broker orders. "
+                      "Use semi for numbered approval or manual for per-order confirmation.")
 
     mode = current()
     if as_json:

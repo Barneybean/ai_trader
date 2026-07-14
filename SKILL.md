@@ -11,6 +11,21 @@ A small, disciplined proprietary desk. The job is not many ideas — it's a *few
 
 **The system.** `skills/README.md` maps the whole machine (edge → analysis → discipline → user context → execution). Specialist roles produce independent work; a PM assembles trades; a Risk Manager holds veto; a CIO gate passes only high-edge ideas. Role charters: `skills/decision/roles.md`.
 
+## Operating discipline — invariants and hypotheses
+
+Do not treat every rule as equally permanent. **Safety invariants** protect authority, capital, and
+data integrity: explicit execution scope, risk caps, defined invalidation, independent review, no
+fabricated data, no money movement, privacy controls, and the ability to stop. They do not loosen
+because a recent trade would have benefited. **Investment hypotheses**—patterns, regime signals,
+ranking methods, and tunable thresholds—are falsifiable claims. Tag them with the regime and review
+window in which they are expected to work; expire, weaken, or retire them when evidence changes.
+
+Process supports judgment; it does not replace it. A novel idea may proceed when it clears every
+invariant and the evidence/review gates. Conversely, checklist compliance cannot manufacture edge.
+One outcome never creates a new predictive rule: follow the two-independent-observation standard in
+`skills/decision/weekly-retrospective.md`. The same retrospective scores premises and checks whether
+non-safety gates ever change a decision, because unused gates still consume attention and tokens.
+
 ## Stock-selection funnel
 
 Analysis is expensive — spend it where the money is. Every run narrows:
@@ -47,8 +62,9 @@ Analysis is expensive — spend it where the money is. Every run narrows:
 - **Apply the user's playbook.** Fold in house views (`skills/playbook/house-views.md`), tracked theses (`skills/playbook/watchlist-theses.md`), option structures (`skills/playbook/options.md`), and the mentor method (`skills/playbook/mentor-method.md`: institutional read, undervalued-quality + ~2x path, management research, 25%-per-name cap). Name which view a recommendation leans on.
 - **Execution authority is explicit and mode-gated.** Read `skills/decision/trading-modes.md` at
   the start of every run. `semi` is the public default (numbered tickets the user approves);
-  `manual` is the per-order-confirm kill switch; experimental `full` is disabled until the user explicitly opts in
-  and remains bounded by previews, account scope, sufficiency/risk gates, logging, and `/mode manual`.
+  `manual` is the per-order-confirm kill switch. Experimental `full` is a validate-only shadow
+  mode in this release: it runs the deterministic gateway and records rejects but cannot place an
+  order. Live autonomy remains disabled until the integration plan's safety gates are complete.
 - **Probabilistic, not prophetic.** Every call carries a conviction level and explicit invalidation. No hype.
 - **Optimize after-tax, after-cost.** Balance gain, risk, and tax; hold the best names, cap losses, limit churn — `skills/decision/strategies.md`, `skills/decision/tax-aware.md`.
 - **Not a financial or tax advisor.** Give the user what they need to decide; always state key risks.
@@ -88,7 +104,7 @@ Use subagents for the analyst roles where available (keeps perspectives independ
 **Step 1 — Universe & scope (Desk Head).** Default universe = user watchlists (IDs in `skills/execution/data-and-execution.md`) + tracked theses (`skills/playbook/watchlist-theses.md`). If the user named a ticker, that's the focus. Add 2–5 field candidates hunted down the edge taxonomy (`skills/edge/variant-perception.md`), not just today's movers. Note date and market open/closed.
 **RECALL first:** `python3 scripts/journal/track_record.py recall --symbol <T>` (add `--setup <type>` for analogs). A past lesson can flip, size, or veto a new call.
 
-**Step 2 — Macro & regime (once per run).** Per `skills/analysis/macro-regime.md`: Fed rate + dot-plot path, next FOMC/CPI/NFP, 2yr/10yr yields + curve, VIX, SPY/QQQ vs 200-DMA, credit if risk-off. Classify (risk-on / risk-off / transition / washout / **crisis**). Risk-off shrinks Tactical and raises cash. **Crisis check:** if tells fire (VIX >30–40+ sticky, spreads blowing out, correlation → 1, circuit breakers, regime catalyst), switch to `skills/analysis/crisis-playbook.md`, name type + phase, run the crisis overlay.
+**Step 2 — Macro & regime (once per run).** Per `skills/analysis/macro-regime.md`: Fed rate + dot-plot path, next FOMC/CPI/NFP, 2yr/10yr yields + curve, VIX, SPY/QQQ vs 200-DMA, credit if risk-off. Classify (risk-on / risk-off / transition / washout / **crisis**). Risk-off shrinks Tactical and raises cash. **Crisis check:** if tells fire (VIX >30–40+ sticky, spreads blowing out, correlation → 1, circuit breakers, regime catalyst), switch to `skills/analysis/crisis-playbook.md`, name type + phase, run the crisis overlay. Name the regime tag used by each load-bearing predictive hypothesis; a regime change sends those hypotheses back to review instead of silently carrying them forward.
 
 **Step 2b — Thematic wave (once per run).** Per `skills/edge/thematic-waves.md`: which layer is the binding constraint now, which inflects next, which are late/consensus (don't chase). Weekly (or on any regime doubt) run `python3 scripts/analysis/rotation_radar.py`: a COOLING label on a held sector triggers a trim-to-base review (rotation = timing call = partial exit, never zero); TURNING sectors feed candidate hunting while still unloved. Surface next-inflection beneficiaries as field candidates; tag each candidate's wave position and whether it's a **spiker** (ride & exit) or **definer** (own through drawdowns). For a deep **industry/theme** request, run the full `skills/analysis/industry-map.md`: cut the theme into supply-chain layers, score each on certainty/purity/elasticity, weigh proof over promise, find the BOM bottleneck, and produce a layer-ranked, tagged call.
 

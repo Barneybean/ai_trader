@@ -63,12 +63,51 @@ The point of keeping score is that the *machine* improves, not just the picks:
 - **Both error directions count:** gates that let a loser through AND gates that blocked a
   winner (WAIT-KNIFE names that based and ran, exit-radar TRIMs that kept running). The
   scorer can't see foregone wins unless the retrospective looks.
-- **Apply and commit:** a calibration that clears the bar edits the skill/script in the same
-  session, with the evidence cited in the commit message. The toolkit's git history *is*
-  its learning record.
+- **Propose and review:** a calibration that clears the bar becomes an issue with its evidence,
+  then a focused branch and PR. Do not silently change permanent toolkit behavior inside a report
+  run. The issue, review, and git history are the learning record.
 - **Method budget:** after ~30 scored insights, methods with persistent sub-coin-flip hit
   rates lose report space and sizing weight (`insight-registry.md` scoring); methods that
   hit earn it. Attention is the desk's scarcest capital.
+
+## Step 4b — Premise and gate audit
+
+Calls are not the only predictions. Patterns, regime assumptions, ranking methods, and tunable
+thresholds embedded in the toolkit are hypotheses too. Audit them without weakening the safety
+invariants defined in `SKILL.md`.
+
+### Score load-bearing premises
+
+For each hypothesis used during the review window, record:
+
+| Premise ID | Expected regime and observation | Evidence for / against | Decisions affected | Status |
+|---|---|---|---:|---|
+| `HYP-EXAMPLE` | Fictional: confirmation pattern improves follow-through in a stable regime | simulated example only | 2 | KEEP / WEAKEN / RETIRE |
+
+- State the premise before reading its outcome; do not rewrite it to fit the tape.
+- A regime change automatically reopens regime-conditioned premises for review.
+- Two independent same-mode rule errors are required before changing a predictive gate or
+  threshold. One observation remains a dated lesson, not a permanent toolkit rule.
+- Record both directions: a weak gate that admitted a bad decision and an overly strict gate that
+  blocked a sound one.
+
+### Audit gate efficacy and cost
+
+Over a meaningful window (at least one quarter or 50 decisions), inventory each non-safety gate:
+
+| Gate ID | Eligible decisions | Veto / resize / flip count | Unique effect? | Cost | Action |
+|---|---:|---:|---|---|---|
+| `GATE-EXAMPLE` | 50 fictional cases | 0 | duplicates another review | repeated context | CONSOLIDATE |
+
+For a gate that never changed a decision, determine whether it is mis-wired, redundant, waiting
+for a plausible rare event, or dead weight. Consolidate or retire it only when the evidence window
+is adequate and removal preserves the same decision and safety behavior. Safety invariants and
+hard preconditions are exempt: their value is loss prevention, not frequent firing.
+
+Audit the origin of every predictive gate as well. A rule introduced from one observation remains
+on probation until a second independent case confirms it; otherwise demote it to a journaled lesson
+or optional reference. Record proposed changes through the normal issue and PR workflow rather than
+silently editing the toolkit during a report run.
 
 ## Step 5 — Feed the new week
 
@@ -98,4 +137,5 @@ answer ("just tell me", "no report").
   only winners means the pass was done wrong.
 - Cross-links: per-name memory loop in `reflection-memory.md` (RECALL at Step 1 of every
   run); per-method scoring in `insight-registry.md`; this file is the weekly, whole-book
-  version of both.
+  version of both. The invariant/hypothesis boundary and gate-retirement rationale are recorded in
+  ADR-0015.

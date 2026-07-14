@@ -34,3 +34,10 @@ test('keeps plumbing test cheap and validates kinds', () => {
   assert.equal(scheduledLabel('postmarket'), 'Post-market');
   assert.throws(() => buildScheduledPrompt('unknown', 'manual'), /unknown scheduled kind/);
 });
+
+test('full scheduled mode remains validate-only', () => {
+  const prompt = buildScheduledPrompt('postmarket', 'full', new Date('2026-07-13T20:00:00Z'));
+  assert.match(prompt, /FULL SHADOW/);
+  assert.match(prompt, /Never place an order/);
+  assert.doesNotMatch(prompt, /execute playbook-compliant tickets/);
+});

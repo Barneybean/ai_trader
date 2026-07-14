@@ -38,9 +38,9 @@ detection"** in `SKILL.md` and follow the branch that matches what you actually 
 - **Delivery** — if you have a writable git remote, build and push the HTML report. Otherwise
   deliver the markdown/HTML locally or inline.
 - **Execution** — read `skills/decision/trading-modes.md` before any order. The public default is
-  `manual`: preview and obtain an explicit, order-specific confirmation. `semi` and experimental
-  `full` require explicit user opt-in and remain bounded by previews, account scope, sufficiency,
-  risk gates, logging, and the kill switch. With no connector, output an unplaced exact ticket.
+  `semi`: preview numbered tickets and act only on explicit approval. `manual` is the per-order
+  confirmation kill switch. Experimental `full` is validate-only in this release: it evaluates
+  tickets but cannot place them. With no connector, output an unplaced exact ticket.
 
 ## Not financial advice
 
