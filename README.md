@@ -242,7 +242,7 @@ plain-language requests you use in the terminal. Reports, analysis, follow-ups, 
 questions behave the same way.
 
 <p align="center">
-  <img src="docs/phone-demo/01-command-and-result.jpg" width="240" alt="Requesting an NKE report by phone, with receipt, progress, decision summary, and delivered HTML report">
+  <img src="docs/phone-demo/01-command-and-result.jpg" width="240" alt="Receiving a fictional mid-market desk summary, delivered HTML report, and semi-auto execution-item approval prompt by phone">
   &nbsp;
   <img src="docs/phone-demo/02-report-on-phone.jpg" width="240" alt="Opening the bilingual NKE decision report on a phone">
 </p>
