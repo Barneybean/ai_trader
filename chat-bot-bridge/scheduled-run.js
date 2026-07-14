@@ -54,7 +54,7 @@ function submit(kind) {
 
 async function main() {
   const kind = process.argv[2];
-  if (!SCHEDULE_KINDS.includes(kind)) throw new Error('usage: scheduled-run.js premarket|postmarket|test');
+  if (!SCHEDULE_KINDS.includes(kind)) throw new Error('usage: scheduled-run.js premarket|midmarket|postmarket|test');
   const dow = new Date().getDay();
   if (kind !== 'test' && process.env.FORCE_RUN !== '1' && (dow === 0 || dow === 6)) {
     console.log(`${new Date().toISOString()} weekend — skipping`);

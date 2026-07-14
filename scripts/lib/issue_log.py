@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import datetime
 from pathlib import Path
 
 VALID_SEVERITY = {"info", "warn", "critical"}
@@ -44,7 +43,8 @@ def record(
     linked: str | None = None,
     path: str | Path | None = None,
 ) -> dict:
-    now = datetime.now().astimezone()
+    import clock
+    now = clock.utc_now()
     target = issues_path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
     prefix = f"ISS-{now:%Y-%m-%d}-"
@@ -52,7 +52,7 @@ def record(
         "id": prefix + str(1 + sum(
             str(item.get("id", "")).startswith(prefix) for item in load(target)
         )),
-        "ts": now.isoformat(timespec="seconds"),
+        "ts": clock.to_utc_iso(now),
         "severity": severity if severity in VALID_SEVERITY else "warn",
         "category": category,
         "source": source,

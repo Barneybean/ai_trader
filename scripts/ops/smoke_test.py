@@ -116,6 +116,7 @@ def smoke_commands(files: list[str]) -> tuple[list[tuple[str, list[str], Path]],
     touches_report = any(f.startswith("scripts/report/") for f in files)
     touches_ops = any(f.startswith("scripts/ops/") for f in files)
     touches_execution = any(f.startswith("scripts/execution/") for f in files)
+    touches_lib = any(f.startswith("scripts/lib/") for f in files)
     touches_issue_log = any(f in {
         "scripts/lib/issue_log.py", "scripts/lib/test_issue_log.py"
     } for f in files)
@@ -216,6 +217,13 @@ def smoke_commands(files: list[str]) -> tuple[list[tuple[str, list[str], Path]],
         review_notes.append(
             "Confirm the execution gateway remains validate-only and fails closed."
         )
+
+    if touches_lib:
+        commands.append((
+            "clock tests",
+            [sys.executable, "scripts/lib/test_clock.py"],
+            ROOT,
+        ))
 
     if touches_issue_log:
         commands.append((

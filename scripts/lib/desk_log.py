@@ -83,8 +83,9 @@ def log_event(component: str, event: str, level: str = "info", **data) -> None:
     """One structured event to activity.jsonl + a mirrored line in desk.log."""
     _ensure_dir()
     _rotate_jsonl()
+    import clock
     record = {
-        "ts": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+        "ts": clock.utc_now_iso(),
         "component": component,
         "level": level,
         "event": event,

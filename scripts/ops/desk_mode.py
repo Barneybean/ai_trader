@@ -47,8 +47,8 @@ def current():
 def set_mode(mode, source="cli"):
     if mode not in MODES:
         raise ValueError(f"unknown mode: {mode!r} (use: {' | '.join(MODES)})")
-    import datetime as dt
-    payload = {"mode": mode, "updated": dt.datetime.now().astimezone().isoformat(timespec="seconds"),
+    import clock
+    payload = {"mode": mode, "updated": clock.utc_now_iso(),
                "source": source}
     # atomic write — the bridge and scheduled runs read this file concurrently;
     # a reader must never catch a truncated file (parse failure falls back to

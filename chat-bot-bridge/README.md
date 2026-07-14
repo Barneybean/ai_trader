@@ -178,9 +178,11 @@ The pass reuses existing work, keeps repeated-call protection enabled, and canno
 orders. A complete report recovered from a failed run is still attached; incomplete scaffolds are
 not. Execution transcripts remain local unless `PHONE_EXECUTION_LOG` explicitly enables delivery.
 
-Scheduled pre-market and post-market requests are idempotent by local calendar day. A duplicate is
-skipped unless the scheduler explicitly sets `force: true`; a queue-full rejection does not consume
-that day's run slot. Each accepted report run preserves prior artifacts rather than overwriting them.
+Scheduled pre-market, optional mid-market, and post-market requests are idempotent by local calendar
+day. A duplicate is skipped unless the scheduler explicitly sets `force: true`; a queue-full rejection
+does not consume that day's run slot. Invoke the optional intraday update with
+`node scheduled-run.js midmarket`; it checks the morning plan rather than re-underwriting the day.
+Each accepted report run preserves prior artifacts rather than overwriting them.
 When semi-auto output contains actionable tickets, the phone receives a compact numbered follow-up
 with the exact approval wording.
 

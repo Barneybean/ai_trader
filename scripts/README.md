@@ -67,6 +67,7 @@ Grouped by what the script serves. Every CLI is run from the repo root
 | `desk_log.py` | Unified activity logging (`logs/desk.log` + `logs/activity.jsonl`); every CLI wraps its `main` in `desk_log.run` — `python3 scripts/lib/desk_log.py tail` shows recent activity |
 | `jsonl.py` | Tolerant shared JSONL reader used by journal recall/review tools; internal library, not a user CLI |
 | `issue_log.py` | Append-only private operational review queue (`journal/issues.jsonl`) for rejects, faults, and near misses |
+| `clock.py` / `test_clock.py` | Canonical UTC record timestamps and labeled Pacific display helpers with DST regression coverage |
 
 ## Lifecycle classes
 

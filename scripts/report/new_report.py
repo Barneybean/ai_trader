@@ -35,6 +35,8 @@ import sys
 _SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path[:0] = [os.path.join(_SCRIPTS, d) for d in ("lib", "analysis", "ops")]
 
+import clock  # canonical time; reports file under the Pacific calendar day
+
 # reports/ lives at the project root, one level up from this scripts/ dir. The
 # editable markdown is a *build intermediate* — it lives in a git-ignored build
 # dir so `reports/` itself only ever holds the finished, committed **HTML**.
@@ -276,7 +278,7 @@ _仅供信息与研究参考，不构成投资建议。订单执行遵循当前�
 
 
 def _today():
-    return _dt.date.today().isoformat()
+    return clock.pacific_date().isoformat()
 
 
 def slugify(text):
@@ -308,7 +310,7 @@ def build_path(date_iso, title, model):
 
 def render_scaffold(date_iso, market):
     d = _dt.date.fromisoformat(date_iso)
-    date_human = d.strftime("%A, %B %-d, %Y")
+    date_human = d.strftime("%A, %B %-d, %Y") + " (PT)"
     market_suffix = f" ({market})" if market else ""
     import desk_mode
     return SCAFFOLD.format(date_human=date_human, market=market_suffix,

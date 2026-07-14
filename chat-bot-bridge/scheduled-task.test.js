@@ -27,6 +27,17 @@ test('builds decision-grade premarket prompt with active mode', () => {
   assert.match(prompt, /distinct scheduled report run/);
   assert.doesNotMatch(prompt, /FILE:/);
   assert.match(prompt, /MANDATORY SCHEDULED-REPORT BROKER PREFLIGHT/);
+  assert.match(prompt, /Mon, Jul 13, 2026 PT/);
+});
+
+test('builds a decision-grade midmarket update tied to the morning plan', () => {
+  const prompt = buildScheduledPrompt('midmarket', 'semi', new Date('2026-07-14T16:30:00Z'));
+  assert.match(prompt, /MID-MARKET intraday update/);
+  assert.match(prompt, /NOT a from-scratch re-underwrite/);
+  assert.match(prompt, /recall today's pre-market report/);
+  assert.match(prompt, /SEMI-AUTO/);
+  assert.match(prompt, /bilingual HTML report/);
+  assert.equal(scheduledLabel('midmarket'), 'Mid-market');
 });
 
 test('keeps plumbing test cheap and validates kinds', () => {

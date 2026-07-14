@@ -51,3 +51,4 @@ Routine bug fixes, copy edits, and new reference content don't need one.
 - [ADR-0014](0014-full-auto-starts-as-a-validate-only-shadow.md) — Full-auto starts as a validate-only shadow — Accepted
 - [ADR-0015](0015-predictive-rules-are-expiring-hypotheses.md) — Predictive rules are expiring hypotheses — Accepted
 - [ADR-0016](0016-phone-bridge-recovery-and-delivery-are-deterministic.md) — Phone bridge recovery and delivery are deterministic — Accepted
+- [ADR-0031](0031-canonical-time-utc-record-pacific-display.md) — Canonical time: record in UTC, display in Pacific, always labeled — Accepted

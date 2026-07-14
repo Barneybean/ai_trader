@@ -33,6 +33,19 @@ test('structured ticket markers are stripped and preferred', () => {
   assert.equal(parsed.tickets[0].symbol, 'NKE');
 });
 
+test('parses Markdown-formatted TLDR tickets so scheduled reports retain execution items', () => {
+  const reply = [
+    '**Proposed ticket — SEMI (reply "approve 1"):**',
+    '1. **SELL 5 OKLO · limit $46.50 · GTC · all-day (24h).** Optional de-risk.',
+  ].join('\n');
+  const parsed = extractReportTickets(reply);
+  assert.deepEqual(parsed.tickets.map(({ number, action, symbol, quantity, limitPrice, orderType, timeInForce }) =>
+    ({ number, action, symbol, quantity, limitPrice, orderType, timeInForce })), [
+    { number: 1, action: 'sell', symbol: 'OKLO', quantity: 5, limitPrice: 46.5, orderType: 'limit', timeInForce: 'GTC' },
+  ]);
+  assert.match(formatExecutionItemsMessage(parsed.tickets), /1\. SELL 5 OKLO limit \$46\.50/);
+});
+
 test('ok to execute approves all saved report tickets', () => {
   const ticketSet = { id: 'set-1', createdAt, tickets: extractReportTickets(report).tickets };
   const resolved = resolveTicketApproval('Ok to execute', ticketSet);

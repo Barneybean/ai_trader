@@ -81,7 +81,7 @@ This folder is the single source of truth for multiple runtimes (Claude Code, Cl
 | **Report delivery** — writable git remote | `new_report.py` → `charts.py` → `build_report.py` → commit & push HTML. | Deliver markdown/HTML locally or inline (Claude Desktop: return in chat). |
 | **Execution** — broker order tools | Apply the active trading mode; preview every ticket and preserve all account/risk gates. | No placement in any mode — output the exact unplaced ticket. |
 
-**Data honesty (all runtimes):** missing capability → use the fallback and say so. Degraded is fine, *fabricated is not*. A support/resistance map on user-pasted bars is valid; a made-up quote is a firing offense. Tag any number that isn't from the live connector.
+**Data honesty (all runtimes):** missing capability → use the fallback and say so. Degraded is fine, *fabricated is not*. A support/resistance map on user-pasted bars is valid; a made-up quote is a firing offense. Tag any number that isn't from the live connector. **Label every time** (ADR-0031): reports use Pacific dates, human-facing clock times carry PT/ET, and stored timestamps are UTC.
 
 ## The desk run (pipeline)
 
@@ -224,6 +224,8 @@ execution skill.
 All sub-skills live in `skills/`, grouped by capability — start at **`skills/README.md`** for the annotated map. Groups: **edge/** (variant-perception, thematic-waves, smart-money) · **analysis/** (quant-levels, chip-distribution, money-flow, pattern-forecast, industry-map, business-inflection, value-radar, catalyst-scan, macro-regime, crisis-playbook, sector-playbooks + sectors/ + stocks, plus `skills/analysis/valuation-quality-gate.md`) · **decision/** (roles, research-debate, risk-committee, review-rubric, stress-test, sufficiency-gate, strategies, sell-timing, reflection-memory, weekly-retrospective, tax-aware, `skills/decision/insight-registry.md`, `skills/decision/trading-modes.md`) · **playbook/** (mentor-method, mentor-casebook, house-views, watchlist-theses, options, private-deals — bring-your-own) · **execution/** (data-and-execution). The categorized engine inventory and lifecycle are maintained in `scripts/README.md`.
 
 **Toolkit reliability:** prefer wrapping engine runs — `python3 scripts/lib/desk_log.py run -- python3 scripts/<group>/<engine>.py …` — so every run leaves a debuggable trace (args, duration, exit code, stderr tail) in git-ignored logs; `desk_log.py stats` shows per-script error rates and latency. Key build/method decisions (new gates, data contracts, privacy posture) are recorded as ADRs in `docs/adr/` — read them before proposing structural changes, and scaffold a new one with `python3 scripts/ops/new_adr.py "Title"` when you make one.
+
+`scripts/lib/clock.py` records UTC instants and renders labeled Pacific display times; `scripts/lib/test_clock.py` locks that contract across DST.
 
 ## Private deals (separate track)
 

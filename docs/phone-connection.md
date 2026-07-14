@@ -29,6 +29,9 @@ unavailable choices during automatic fallback. Scheduled report submissions are 
 kind and local calendar day unless the scheduler explicitly requests a forced rerun. A rejected
 queue-full submission remains eligible to run later.
 
+Recorded runtime events use UTC; the phone shows report dates and model reset clocks in labeled
+Pacific time (`PT`, `PST`, or `PDT`).
+
 ## Common commands
 
 | Command | Meaning |

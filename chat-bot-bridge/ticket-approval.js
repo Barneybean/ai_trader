@@ -43,7 +43,10 @@ function parseNumberedTicket(line) {
   const numbered = String(line).match(/^\s*(\d+)[.)]\s+(.+?)\s*$/);
   if (!numbered) return null;
   const number = Number(numbered[1]);
-  const description = numbered[2].replace(/\s+/g, ' ').trim();
+  // Scheduled-report TLDRs may wrap a ticket in Markdown emphasis. Strip only
+  // emphasis markers before matching the leading action; tickers and order
+  // keywords never use these characters.
+  const description = numbered[2].replace(/[*`_]/g, '').replace(/\s+/g, ' ').trim();
   const actionMatch = description.match(/^(BUY|SELL|CANCEL|REPLACE)\b/i);
   if (!actionMatch) return null;
   const action = actionMatch[1].toLowerCase();

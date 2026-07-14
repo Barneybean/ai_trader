@@ -71,6 +71,7 @@ import {
   SCHEDULE_KINDS,
   scheduledLabel,
 } from './scheduled-task.js';
+import { pacificLabel } from './clock.js';
 import {
   createRunTranscript,
   decisionContinuation,
@@ -561,7 +562,7 @@ function runClaude(prompt, onEvent = () => {}, model = CLAUDE_MODEL, attachments
           const ri = ev.rate_limit_info;
           if (claudeRateLimitBlocked(ri)) {
             resetAtMs = resetSecondsToMs(ri.resetsAt);
-            const resets = resetAtMs ? ` — resets ${new Date(resetAtMs).toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}` : '';
+            const resets = resetAtMs ? ` — resets ${pacificLabel(resetAtMs)}` : '';
             fallbackRequested = true;
             fallbackReason = `usage limit: ${ri.status}${resets}`;
             // Write this immediately. The CLI may be terminated before it
