@@ -47,6 +47,7 @@ Grouped by what the script serves. Every CLI is run from the repo root
 | `check_consistency.py` | Pre-push integrity gate: links, registrations, ADRs, collisions, context budgets |
 | `smoke_test.py` | Significant-change smoke gate: targeted syntax + behavior checks, then a human review request |
 | `sync_audit.py` | Read-only source/public inventory: remote firewall, boundary classification, public invariants, and review plan |
+| `change_traceability.py` / `test_change_traceability.py` | PR gate and regression suite: verify same-repository issues, rationale, and acceptance criteria through read-only GitHub metadata |
 | `new_adr.py` | Scaffold an Architecture Decision Record in `docs/adr/` |
 | `package_skill.py` | Zip the skill (SKILL.md + skills/ + scripts/) for Claude Desktop upload |
 | `install_hooks.sh` / `install_mirrors.sh` | One-time setup: git hooks, runtime mirrors |

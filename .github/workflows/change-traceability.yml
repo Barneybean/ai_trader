@@ -6,37 +6,18 @@ on:
 
 permissions:
   contents: read
+  issues: read
 
 jobs:
   require-issue-and-reason:
     runs-on: ubuntu-latest
     steps:
-      - name: Require a closing issue link and use case
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Require documented same-repository issues
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
-        run: |
-          python3 - <<'PY'
-          import os
-          import re
-          import sys
-
-          body = os.environ.get("PR_BODY", "")
-          issue = re.search(
-              r"(?i)\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+(?:[\w.-]+/[\w.-]+)?#\d+\b",
-              body,
-          )
-          section = re.search(
-              r"(?ims)^##\s+Use case / reason\s*$\s*(.*?)(?=^##\s|\Z)",
-              body,
-          )
-          reason = re.sub(r"<!--.*?-->", "", section.group(1) if section else "", flags=re.S).strip()
-          failures = []
-          if not issue:
-              failures.append("Add `Closes #<issue>` to attach an issue to this MR/PR.")
-          if not reason:
-              failures.append("Complete the `## Use case / reason` section.")
-          if failures:
-              print("Change traceability failed:\n- " + "\n- ".join(failures), file=sys.stderr)
-              raise SystemExit(1)
-          print("Change traceability passed.")
-          PY
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 scripts/ops/change_traceability.py

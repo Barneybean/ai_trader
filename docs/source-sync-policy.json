@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "policy_id": "ai-trader-toolbox-public-boundary",
-  "policy_version": "1.1.0",
+  "policy_version": "1.2.0",
   "purpose": "Classify source-to-public differences without copying files or private state.",
   "canonical_paths": [
     {
@@ -13,6 +13,7 @@
     {"id": "analysis_engines", "path": "scripts/analysis", "required": true, "aliases": []},
     {"id": "journal_tools", "path": "scripts/journal", "required": true, "aliases": []},
     {"id": "shared_libraries", "path": "scripts/lib", "required": true, "aliases": []},
+    {"id": "execution_gateway", "path": "scripts/execution", "required": false, "aliases": []},
     {"id": "operations", "path": "scripts/ops", "required": true, "aliases": []},
     {"id": "report_tools", "path": "scripts/report", "required": true, "aliases": []},
     {"id": "skills", "path": "skills", "required": true, "aliases": []}
@@ -83,6 +84,7 @@
         ".githooks/**",
         "chat-bot-bridge/**",
         "docs/**",
+        "scripts/execution/**",
         "skills/playbook/**",
         "skills/execution/**",
         "skills/decision/trading-modes.md",

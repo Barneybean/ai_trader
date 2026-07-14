@@ -63,6 +63,8 @@ def changed_files_for_spec(spec: str) -> list[str]:
 def significant_path(rel: str) -> bool:
     prefixes = (
         "README.md",
+        "DEVELOPMENT.md",
+        "CONTRIBUTING.md",
         "SKILL.md",
         "AGENTS.md",
         "PORTABILITY.md",
@@ -179,6 +181,11 @@ def smoke_commands(files: list[str]) -> tuple[list[tuple[str, list[str], Path]],
         review_notes.append("Confirm the report workflow still matches the README and sample report.")
 
     if touches_ops:
+        commands.append((
+            "change traceability tests",
+            [sys.executable, "scripts/ops/test_change_traceability.py"],
+            ROOT,
+        ))
         commands.append((
             "desk mode help",
             [sys.executable, "scripts/ops/desk_mode.py", "--json"],

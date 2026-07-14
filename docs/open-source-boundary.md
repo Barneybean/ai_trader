@@ -80,6 +80,7 @@ a second public alias when sanitizing a feature.
 | Analysis engines | `scripts/analysis/` | Former flat scripts are compatibility launchers only. |
 | Journal machinery | `scripts/journal/` | Code is public; user journal data is private. |
 | Shared libraries | `scripts/lib/` | Source code, never confused with root packaging artifact directories. |
+| Execution gateway | `scripts/execution/` | High-authority code requires sanitization, deterministic validation, and sandbox tests before public release. |
 | Operations and gates | `scripts/ops/` | Hooks, privacy, consistency, smoke, mode, packaging, and setup. |
 | Report machinery | `scripts/report/` | Builders are public; generated reports and assets are private runtime output. |
 | Methods and policies | `skills/` | Generic/configurable methods only; personal overlays remain ignored. |
@@ -243,7 +244,8 @@ change-review, phone-output, run-telemetry, inbound-media, broker-preflight, sch
 with a Node `--test` suite and gated by the smoke suite (ADR-0010); `server.js` is the transport
 shell. Phone run controls (`/run`, `/stop`, `/steer`, `/decide`) and mobile code-change reviews are
 public capabilities, but every launchd label/path stays a `YOUR_NAME`/`com.example` template and all
-account/execution defaults stay public-safe (`manual`, execution-scope-only, no money movement).
+account/execution defaults stay public-safe (`semi` with explicit ticket approval, `manual` as the
+kill switch, execution-scope-only, and no money movement).
 
 ### Agent integrations and switching
 

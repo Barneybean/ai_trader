@@ -91,9 +91,16 @@ change to the default branch.
 ## Repository enforcement
 
 The issue forms require use cases, reasons, evidence, and acceptance criteria. The MR/PR template
-requires `Closes #…`, and `.github/workflows/change-traceability.yml` rejects MR/PRs without both a
-closing issue reference and a completed **Use case / reason** section.
+requires `Closes #…`, and `.github/workflows/change-traceability.yml` rejects MR/PRs unless every
+closing reference resolves to an open issue in the same repository with a completed rationale and
+acceptance criteria. The MR/PR must also complete its own **Use case / reason** section. The workflow
+runs `scripts/ops/change_traceability.py`; its regression contract lives in
+`scripts/ops/test_change_traceability.py` and is included in significant-change smoke tests.
 
 Repository administrators must also protect the default branch with **Require a pull request before
 merging**, require the traceability/privacy/consistency checks, prevent force pushes, and limit
-direct pushes. File-based CI cannot prevent an administrator from bypassing host settings.
+direct pushes. The repository owner/admin may override the approval requirement only when all
+required checks have passed, the owner explicitly directs the merge, and the reason is recorded on
+the MR/PR. The override still merges through the MR/PR; it never authorizes a direct push, a failing
+check, or an automated bypass. Other automation and routine actors receive no bypass permission.
+File-based CI cannot prevent a privileged host-level action, so its audit trail is mandatory.
