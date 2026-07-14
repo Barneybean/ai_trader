@@ -4,6 +4,13 @@ Thanks for your interest! This project is an open-source **starter** desk — ge
 knowledge and one example skill that people fork and customize. Contributions that make the *base*
 better for everyone are very welcome.
 
+## Required change lifecycle
+
+Every feature, bug fix, and behavior change follows **issue → branch update → reviewed MR/PR →
+merge**. The issue must explain the use case or reason and acceptance criteria; the MR/PR must use
+`Closes #<issue>`. Direct permanent changes to the default branch are not accepted. Read the
+canonical [`Developer guide`](DEVELOPMENT.md) before implementation.
+
 Before proposing or syncing a feature into the public toolbox, read the canonical
 [`Open-Source Boundary and Customization Standard`](docs/open-source-boundary.md). It defines what
 belongs in the reusable core, what must be configurable, and what must remain private.
@@ -146,8 +153,8 @@ Review your own change the way the desk reviews a trade — *before* anyone else
 
 ## Pull requests
 
-1. Branch off `opensource`.
-2. Keep PRs focused; describe the *why*.
+1. Start from a documented issue, then branch from the target repository's default branch.
+2. Keep PRs focused; include `Closes #<issue>` and complete the use-case/reason section.
 3. Complete the self-review above — gates green, wording condensed, no conflicts.
 4. For a new broker/sector, follow the existing interface/template so it composes.
 5. State that `docs/open-source-boundary.md` was reviewed. Update it in the same PR when the change

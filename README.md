@@ -518,7 +518,8 @@ Want to help? Open an issue with a source, test case, or design and read
 
 ## 🤝 Contributing
 
-Issues and PRs are welcome. Pick a roadmap item or add a playbook through
+Issues and PRs are welcome. Every change follows **issue → branch update → reviewed MR/PR → merge**;
+start with the [`Developer guide`](DEVELOPMENT.md). Pick a roadmap item or add a playbook through
 [The Knowledge Commons](#-the-knowledge-commons). State the problem, evidence, acceptance criteria,
 failure modes, and tests. Run `python3 scripts/ops/scan_pii.py` before pushing. Significant
 updates also trigger `python3 scripts/ops/smoke_test.py` from the git hooks, which asks for human

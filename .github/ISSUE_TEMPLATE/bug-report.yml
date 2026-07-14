@@ -1,0 +1,47 @@
+name: Bug report
+description: Report reproducible incorrect behavior and its user impact
+title: "[Bug] "
+labels: [bug]
+body:
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Affected use case and impact
+      description: What was the user/operator trying to do, and what was the consequence?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: Provide the smallest repeatable sequence, sanitized of sensitive data.
+    validations:
+      required: true
+  - type: textarea
+    id: current
+    attributes:
+      label: Current behavior and evidence
+      description: What happened? Attach sanitized logs, screenshots, or error text when available.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior and acceptance criteria
+      description: What must be observably true for the bug to be fixed?
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, runtime, provider, version/commit, and relevant non-secret configuration.
+    validations:
+      required: true
+  - type: textarea
+    id: risk
+    attributes:
+      label: Safety, privacy, and rollback considerations
+      description: Include trading authority, data exposure, public/private boundary, and containment already applied.
+    validations:
+      required: true

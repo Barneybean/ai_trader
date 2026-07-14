@@ -1,0 +1,39 @@
+name: Feature request
+description: Propose a capability or behavior change with a clear use case
+title: "[Feature] "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Use case
+      description: Who needs this and what are they trying to accomplish?
+      placeholder: "When …, the user/operator needs … so that …"
+    validations:
+      required: true
+  - type: textarea
+    id: reason
+    attributes:
+      label: Reason for change
+      description: Why is current behavior insufficient, and why should the toolkit change?
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Expected outcome and acceptance criteria
+      description: State observable, testable conditions for completion.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed approach
+      description: Optional implementation idea, alternatives, or compatibility considerations.
+  - type: textarea
+    id: risk
+    attributes:
+      label: Risks and boundaries
+      description: Privacy, security, trading authority, public/private boundary, failure modes, and rollback.
+    validations:
+      required: true

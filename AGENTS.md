@@ -18,6 +18,10 @@ not fork or copy the instructions — read them in place.
    read [`docs/open-source-boundary.md`](docs/open-source-boundary.md). Significant changes must
    review whether that living standard also needs an update. For any source repo, fork, or user
    branch, begin with its read-only `python3 scripts/ops/sync_audit.py --source <path>` workflow.
+5. **Change lifecycle:** every feature, bug fix, or behavior change must start from an issue that
+   states the use case or reason, be implemented on a branch, and reach the default branch only
+   through a reviewed MR/PR that closes the issue. Follow [`DEVELOPMENT.md`](DEVELOPMENT.md); do not
+   make or merge permanent direct-to-default changes.
 
 ## Before you run: detect your environment
 

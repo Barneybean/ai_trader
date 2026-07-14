@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "policy_id": "ai-trader-toolbox-public-boundary",
-  "policy_version": "1.0.0",
+  "policy_version": "1.1.0",
   "purpose": "Classify source-to-public differences without copying files or private state.",
   "canonical_paths": [
     {
@@ -59,6 +59,7 @@
       "patterns": [
         "SECURITY.md",
         "LICENSE",
+        "DEVELOPMENT.md",
         ".github/**",
         "docs/adr/**",
         "reports/examples/**",

@@ -1,7 +1,7 @@
 # Open-Source Boundary, Customization, and Source-Sync Policy
 
 **Status:** Canonical development reference
-**Last reviewed:** 2026-07-12
+**Last reviewed:** 2026-07-13
 **Applies to:** Any feature, skill, script, documentation, example, or configuration proposed for
 `ai-trader-toolbox` or another public distribution.
 
@@ -163,6 +163,12 @@ escalate automatically to the complete pipeline.
   ADRs.
 - A generic, sanitized phone bridge may include provider abstraction, allowlisting, model fallback,
   file delivery, schedules, privacy rules, and placeholder launchd templates.
+
+Every public feature, bug fix, or behavior change must use the traceable lifecycle in
+[`DEVELOPMENT.md`](../DEVELOPMENT.md): issue with a use case/reason and acceptance criteria → scoped
+branch update → reviewed MR/PR that closes the issue → merge. Preserve the public issue forms,
+MR/PR template, and traceability workflow during source syncs. Emergency containment may precede an
+issue only when it is reversible and time-sensitive; permanent code still follows the full flow.
 
 ### Agent routing and resilient switching
 

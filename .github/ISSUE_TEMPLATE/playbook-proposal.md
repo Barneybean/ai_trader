@@ -11,6 +11,9 @@ labels: playbook, knowledge-commons
 **Your angle:**
 <!-- What's your experience with it? No credentials required — the playbook is judged on its content. -->
 
+**Use case / reason for adding this playbook:**
+<!-- Who benefits, what decision does it improve, and what is missing from the current toolkit? -->
+
 **The 1–2 variables that set the price:**
 <!-- The specific drivers, not P/E in the abstract. For a stock: what it re-rates on, name-specifically. -->
 
@@ -19,3 +22,6 @@ labels: playbook, knowledge-commons
 
 **Rough timeline for the PR:**
 <!-- So nobody duplicates the work. -->
+
+**Acceptance criteria:**
+<!-- Observable conditions that will make the linked PR complete. -->
