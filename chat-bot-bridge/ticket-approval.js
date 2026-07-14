@@ -94,6 +94,30 @@ export function extractReportTickets(reply) {
   return { text: lines.join('\n').trim(), tickets: unique.sort((a, b) => a.number - b.number) };
 }
 
+function compactTicket(ticket) {
+  const quantity = Number(ticket?.quantity);
+  const price = Number(ticket?.limitPrice);
+  const amount = Number.isFinite(quantity) && quantity > 0 ? ` ${quantity}` : '';
+  const limit = ticket?.orderType === 'limit' && Number.isFinite(price) && price > 0
+    ? ` limit $${price.toFixed(2)}` : '';
+  return `${ticket.number}. ${String(ticket.action || '').toUpperCase()}${amount} ${ticket.symbol}${limit}`;
+}
+
+export function formatExecutionItemsMessage(tickets, options = {}) {
+  const list = (Array.isArray(tickets) ? tickets.filter(isExactTicket) : [])
+    .slice().sort((left, right) => left.number - right.number);
+  if (!list.length) return '';
+  const mode = String(options.mode || 'semi').toLowerCase();
+  const confirm = mode === 'manual'
+    ? 'Manual mode — reply “approve N” (or “approve all”); each order is confirmed against live state before placement.'
+    : 'Reply “approve N” or “approve all” to execute; live open orders are reconciled first.';
+  return [
+    `📋 Execution items to review (${list.length}):`,
+    ...list.map(compactTicket),
+    confirm,
+  ].join('\n');
+}
+
 function looksLikeApproval(text) {
   const value = String(text || '').trim();
   if (!value || value.length > 240 || /\?$/.test(value)) return false;
@@ -112,15 +136,21 @@ function requestedNumbers(text) {
   for (const match of value.matchAll(/(?:#|\btickets?\s*|\bapprove\s+|\bconfirm\s+|\bexecute\s+|\byes\s+to\s+)(\d+)\b/gi)) {
     values.add(Number(match[1]));
   }
-  if (/^(?:approve|confirm|execute|yes\s+to)\s+(?:tickets?\s*)?#?\d+(?:\s*(?:,|and)\s*#?\d+)*$/i.test(value)) {
-    for (const match of value.matchAll(/\d+/g)) values.add(Number(match[0]));
+  const list = value.match(/^(?:approve|confirm|execute|yes\s+to)\s+(?:tickets?\s*)?#?\d+(?:\s*(?:,|and)\s*#?\d+)+/i);
+  if (list) {
+    for (const match of list[0].matchAll(/\d+/g)) values.add(Number(match[0]));
   }
   return [...values];
 }
 
+const APPROVAL_COLLISION_WORDS = new Set([
+  'ALL', 'ANY', 'ARE', 'BOTH', 'BY', 'DO', 'GO', 'IT', 'NOW', 'OK', 'ON', 'OR', 'SO', 'YES', 'YOU',
+]);
+
 function requestedSymbols(text, tickets) {
   const upper = String(text || '').toUpperCase();
   return [...new Set(tickets.map((ticket) => ticket.symbol).filter((symbol) =>
+    !APPROVAL_COLLISION_WORDS.has(symbol) &&
     new RegExp(`(?:^|[^A-Z0-9.-])${symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:$|[^A-Z0-9.-])`).test(upper)))];
 }
 

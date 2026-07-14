@@ -13,7 +13,9 @@ The bridge runtime lives under [`chat-bot-bridge/`](../chat-bot-bridge/).
 - forward reports, approvals, follow-ups, and questions to the active agent;
 - show the current mode, agent preference, and session health;
 - preserve confirm-before-order behavior in every mode;
-- fall back cleanly when the active agent is unavailable, without exposing private session data.
+- fall back cleanly when the active agent is unavailable, without exposing private session data;
+- attach each newly completed report once, while keeping execution transcripts local by default;
+- make one bounded, broker-write-disabled recovery attempt when a report alone reaches its tool cap.
 
 ## Setup shape
 
@@ -21,6 +23,11 @@ The bridge runtime lives under [`chat-bot-bridge/`](../chat-bot-bridge/).
 2. Configure the bridge locally with provider credentials and allowlists.
 3. Connect it to the desk workspace and verify it can read the repo instructions.
 4. Confirm that `/status`, `/agent`, `/mode`, `/new`, and `/help` respond before trusting it.
+
+The bridge stores observed model limits in a bounded, git-ignored local ledger and skips currently
+unavailable choices during automatic fallback. Scheduled report submissions are deduplicated per
+kind and local calendar day unless the scheduler explicitly requests a forced rerun. A rejected
+queue-full submission remains eligible to run later.
 
 ## Common commands
 
@@ -45,5 +52,6 @@ Everything else should behave like normal desk conversation.
 ## Safety notes
 
 - Do not publish secrets, account identifiers, or live session IDs.
+- Do not publish runtime availability, delivery, report, transcript, or scheduling state.
 - Keep agent priority configurable; do not hardcode a private personal order into the public docs.
 - If the bridge changes the public/private boundary, update [docs/open-source-boundary.md](open-source-boundary.md) in the same change.

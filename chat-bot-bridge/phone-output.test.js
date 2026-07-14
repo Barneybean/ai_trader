@@ -1,6 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { sanitizeChangeReviewText, sanitizePhoneText } from './phone-output.js';
+import { forbiddenSendPath, sanitizeChangeReviewText, sanitizePhoneText } from './phone-output.js';
+
+const DESK = '/workspace/toolbox';
+const BRIDGE = `${DESK}/chat-bot-bridge`;
+
+test('FILE guard blocks secrets and path escapes but permits a report', () => {
+  assert.equal(forbiddenSendPath(`${DESK}/reports/report_today.html`, DESK, BRIDGE), false);
+  assert.equal(forbiddenSendPath(`${DESK}/config.local.toml`, DESK, BRIDGE), true);
+  assert.equal(forbiddenSendPath(`${DESK}/scripts/ops/denylist.local.txt`, DESK, BRIDGE), true);
+  assert.equal(forbiddenSendPath(`${BRIDGE}/.env`, DESK, BRIDGE), true);
+  assert.equal(forbiddenSendPath(`${DESK}/reports/.build/draft.html`, DESK, BRIDGE), true);
+  assert.equal(forbiddenSendPath('/outside/secret.txt', DESK, BRIDGE), true);
+  assert.equal(forbiddenSendPath(null, DESK, BRIDGE), true);
+});
 
 test('converts common markdown constructs to plain text', () => {
   const input = '# Verdict\n\n- **WAIT** at [current levels](https://example.com)\n```\nsecret block\n```\n| A | B |\n|---|---|\n| 1 | 2 |';

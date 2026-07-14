@@ -1,12 +1,31 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildScheduledPrompt, scheduledLabel } from './scheduled-task.js';
+import {
+  buildScheduledPrompt,
+  isDuplicateScheduledRun,
+  localCalendarDay,
+  scheduledLabel,
+} from './scheduled-task.js';
+
+test('scheduled runs are idempotent per kind and calendar day', () => {
+  assert.equal(isDuplicateScheduledRun(null, '2026-07-13', { kind: 'postmarket' }), false);
+  assert.equal(isDuplicateScheduledRun('2026-07-13', '2026-07-13', { kind: 'postmarket' }), true);
+  assert.equal(isDuplicateScheduledRun('2026-07-13', '2026-07-14', { kind: 'postmarket' }), false);
+  assert.equal(isDuplicateScheduledRun('2026-07-13', '2026-07-13', {
+    kind: 'postmarket', force: true,
+  }), false);
+  assert.equal(isDuplicateScheduledRun('2026-07-13', '2026-07-13', { kind: 'test' }), false);
+  assert.equal(localCalendarDay(new Date(2026, 6, 13, 23, 59)), '2026-07-13');
+});
 
 test('builds decision-grade premarket prompt with active mode', () => {
   const prompt = buildScheduledPrompt('premarket', 'semi', new Date('2026-07-13T12:45:00Z'));
   assert.match(prompt, /PRE-MARKET complete daily report/);
   assert.match(prompt, /SEMI-AUTO/);
   assert.match(prompt, /bilingual HTML report/);
+  assert.match(prompt, /bridge attaches every finished report HTML automatically/);
+  assert.match(prompt, /distinct scheduled report run/);
+  assert.doesNotMatch(prompt, /FILE:/);
   assert.match(prompt, /MANDATORY SCHEDULED-REPORT BROKER PREFLIGHT/);
 });
 

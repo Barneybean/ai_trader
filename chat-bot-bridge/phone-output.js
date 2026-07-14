@@ -2,6 +2,8 @@
 // Prompt instructions remain the first line of defense; this module prevents a
 // formatting or privacy miss from being forwarded unchanged to a messenger.
 
+import path from 'path';
+
 const MONEY_RE = /(?:\$\s*\d[\d,]*(?:\.\d+)?(?:\s*[kmb])?|\bUSD\s+\d[\d,]*(?:\.\d+)?(?:\s*[kmb])?)/gi;
 const ACCOUNT_VALUE_RE = /\b(?:account\s+value|balance|buying\s+power|cash\s+available|cost\s+basis|portfolio\s+value|profit(?:\s+and\s+loss)?|p\s*&\s*l|pnl|order\s+(?:value|size)|total\s+(?:cash|equity|value))\b/i;
 const ACCOUNT_CONTEXT_RE = /\b(?:account|acct|portfolio)\b/i;
@@ -116,4 +118,20 @@ export function sanitizeExecutionLogText(text, maxChars = 4000) {
 // The renderer performs HTML escaping and its own size limits.
 export function sanitizeChangeReviewText(text) {
   return redactPrivateData(String(text || ''));
+}
+
+const SECRET_SEND_RE = /(?:^|\/)\.env(?:\.|$)|(?:^|\/)config\.local\.toml$|\.local\.(?:txt|toml|json|env|ini)$/i;
+
+// The caller passes canonical, symlink-resolved paths. A file may leave the
+// workstation only when it is inside the desk, outside the bridge runtime
+// directory, visible, and not a local secret/configuration file.
+export function forbiddenSendPath(realPath, deskDir, bridgeDir) {
+  if (!realPath || !deskDir) return true;
+  const sep = path.sep;
+  const inDesk = realPath === deskDir || realPath.startsWith(deskDir + sep);
+  const inBridge = Boolean(bridgeDir)
+    && (realPath === bridgeDir || realPath.startsWith(bridgeDir + sep));
+  const relative = inDesk ? realPath.slice(deskDir.length) : realPath;
+  const hidden = relative.split(sep).some((segment) => segment.startsWith('.'));
+  return !inDesk || inBridge || hidden || SECRET_SEND_RE.test(realPath);
 }

@@ -5,6 +5,7 @@ import {
   brokerExecutionSucceeded,
   buildTrustedBrokerApprovalInstructions,
   extractReportTickets,
+  formatExecutionItemsMessage,
   resolveTicketApproval,
 } from './ticket-approval.js';
 
@@ -37,6 +38,44 @@ test('ok to execute approves all saved report tickets', () => {
   const resolved = resolveTicketApproval('Ok to execute', ticketSet);
   assert.equal(resolved.kind, 'approved');
   assert.deepEqual(resolved.tickets.map((ticket) => ticket.number), [1, 2]);
+});
+
+test('lists every exact execution item in a review-and-confirm follow-up', () => {
+  const tickets = extractReportTickets(report).tickets;
+  const message = formatExecutionItemsMessage(tickets);
+  assert.match(message, /Execution items to review \(2\)/);
+  assert.match(message, /1\. CANCEL 14 SOFI limit \$17\.00/);
+  assert.match(message, /2\. CANCEL 1 NVDA limit \$180\.00/);
+  assert.match(formatExecutionItemsMessage(tickets, { mode: 'manual' }), /Manual mode/);
+  assert.equal(formatExecutionItemsMessage([{ number: 1, action: 'buy', symbol: 'XYZ' }]), '');
+});
+
+test('a trailing word does not drop the last ticket number', () => {
+  const ticketSet = { id: 'set-1', createdAt, tickets: extractReportTickets(report).tickets };
+  assert.deepEqual(
+    resolveTicketApproval('approve 1 and 2 now', ticketSet).tickets.map((ticket) => ticket.number),
+    [1, 2],
+  );
+  assert.deepEqual(
+    resolveTicketApproval('execute 1, 2 please', ticketSet).tickets.map((ticket) => ticket.number),
+    [1, 2],
+  );
+});
+
+test('approval words that resemble symbols do not shrink approve-all', () => {
+  const collision = [
+    '1. BUY 10 GO limit $20, GTC, regular hours.',
+    '2. BUY 3 XYZ limit $18, GTC, regular hours.',
+  ].join('\n');
+  const ticketSet = { id: 'set-1', createdAt, tickets: extractReportTickets(collision).tickets };
+  assert.deepEqual(
+    resolveTicketApproval('execute all', ticketSet).tickets.map((ticket) => ticket.number),
+    [1, 2],
+  );
+  assert.deepEqual(
+    resolveTicketApproval('approve XYZ', ticketSet).tickets.map((ticket) => ticket.number),
+    [2],
+  );
 });
 
 test('natural symbol and numbered confirmations select exact tickets', () => {

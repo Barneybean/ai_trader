@@ -149,6 +149,9 @@ number within five minutes to set the exact default for future runs, or `/agent 
 one agent's focused model menu. Manual selection changes future runs only: it does not interrupt the
 active turn or disable automatic availability switching, and a recent observed availability failure
 stays marked (with a reset time when known) across bridge restart and model handoff.
+Those observations live only in the git-ignored, bounded `model-availability.json` runtime ledger;
+the public repository ships no user's availability history. Automatic fallback skips a model while
+its observed limit is current and considers at most three configured models per registered agent.
 
 When the agent needs a material choice mid-run it does not guess — it posts a numbered decision and
 pauses; your `/decide N` resumes that session. When a phone interaction changes repository files, the
@@ -161,6 +164,25 @@ and falls back to the next available agent. If the active agent hits a usage lim
 the bridge switches to the next available agent, keeps the recent phone context, and tells
 you which agent/model took over. If the handoff cannot preserve context cleanly, the reply
 says so and the replacement agent restarts from the original prompt.
+
+### Reports, recovery, and scheduled runs
+
+Every successful run automatically attaches each new, complete, self-contained
+`reports/**/*.html` artifact. Explicit `FILE:` attachments and auto-discovered reports share one
+delivery ledger, so the same document is not sent twice. Files must resolve inside this repository;
+hidden files, bridge runtime/config files, symlink escapes, and oversized artifacts are rejected.
+
+If a report alone reaches its tool limit before a complete HTML artifact exists, the bridge may make
+one fresh-session, report-only completion pass with a smaller bounded budget (24 calls by default).
+The pass reuses existing work, keeps repeated-call protection enabled, and cannot write broker
+orders. A complete report recovered from a failed run is still attached; incomplete scaffolds are
+not. Execution transcripts remain local unless `PHONE_EXECUTION_LOG` explicitly enables delivery.
+
+Scheduled pre-market and post-market requests are idempotent by local calendar day. A duplicate is
+skipped unless the scheduler explicitly sets `force: true`; a queue-full rejection does not consume
+that day's run slot. Each accepted report run preserves prior artifacts rather than overwriting them.
+When semi-auto output contains actionable tickets, the phone receives a compact numbered follow-up
+with the exact approval wording.
 
 ## Troubleshooting
 

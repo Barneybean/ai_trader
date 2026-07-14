@@ -57,6 +57,21 @@ The public docs expose the same command surface as the phone bridge.
 
 ---
 
+## Reports and recovery
+
+The phone bridge automatically sends each new, complete HTML report once; the agent does not need
+to remember a `FILE:` marker. A rerun preserves the earlier report and creates a distinct artifact.
+Only an explicit request to revise a named report updates an existing one; the desk asks when the
+target is ambiguous.
+
+If report generation alone reaches its tool budget, the bridge can make one smaller fresh-session
+completion attempt. That attempt cannot place, cancel, or replace orders, and incomplete report
+scaffolds are never delivered. Execution transcripts stay in local ignored logs unless you opt in to
+phone delivery. In semi mode, saved report tickets are followed by a compact numbered action list and
+the exact `approve N` / `approve all` instruction.
+
+---
+
 ## Safety rules
 
 - Never publish secrets, account identifiers, or live session IDs.

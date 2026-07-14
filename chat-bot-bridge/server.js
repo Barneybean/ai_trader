@@ -48,7 +48,7 @@ import {
   resolveManualAgentChoice,
   shouldFallbackForBroker,
 } from './agent-routing.js';
-import { sanitizePhoneText } from './phone-output.js';
+import { forbiddenSendPath, sanitizePhoneText } from './phone-output.js';
 import {
   DEFAULT_CLAUDE_MODELS,
   automaticModelHandoffPrompt,
@@ -64,7 +64,13 @@ import {
   resolveModelChoice,
   shouldAutoModelFallback,
 } from './model-routing.js';
-import { buildScheduledPrompt, SCHEDULE_KINDS, scheduledLabel } from './scheduled-task.js';
+import {
+  buildScheduledPrompt,
+  isDuplicateScheduledRun,
+  localCalendarDay,
+  SCHEDULE_KINDS,
+  scheduledLabel,
+} from './scheduled-task.js';
 import {
   createRunTranscript,
   decisionContinuation,
@@ -88,6 +94,21 @@ import {
   temporaryChoiceForRun,
 } from './availability-recovery.js';
 import {
+  availabilityRetryLabel,
+  clearAvailabilityFailure,
+  explicitFutureResetAtMs,
+  filterAvailableModels,
+  findAvailabilityFailure,
+  recordAvailabilityFailure,
+  sameAgentModel,
+} from './model-availability.js';
+import {
+  applyAgentModelSelection,
+  registeredAgentNames,
+  selectedAgentModel,
+  selectedRegisteredAgent,
+} from './agent-registry.js';
+import {
   MAX_INBOUND_IMAGES,
   MAX_INBOUND_IMAGE_BYTES,
   cleanupInboundImages,
@@ -107,8 +128,25 @@ import {
   brokerExecutionSucceeded,
   buildTrustedBrokerApprovalInstructions,
   extractReportTickets,
+  formatExecutionItemsMessage,
   resolveTicketApproval,
 } from './ticket-approval.js';
+import {
+  captureReportSnapshot,
+  deliverReportArtifacts,
+  generatedHtmlReports,
+} from './report-delivery.js';
+import {
+  captureReportDraftSnapshot,
+  recoverableReportDrafts,
+} from './report-artifact-recovery.js';
+import {
+  buildReportRecoveryPrompt,
+  isBrokerWriteTool,
+  isReportRequest,
+  reportRecoverySafetyInstructions,
+  shouldRecoverReportRun,
+} from './report-recovery.js';
 
 // Some macOS/Wi-Fi combinations advertise an IPv6 route that black-holes
 // Telegram traffic. Node's fetch can then sit in the OS connect path for many
@@ -118,7 +156,9 @@ dns.setDefaultResultOrder('ipv4first');
 // ---------------------------------------------------------------- config ---
 const BRIDGE_DIR = path.dirname(fileURLToPath(import.meta.url));
 const DESK_DIR = path.resolve(BRIDGE_DIR, '..');
+const REPORTS_DIR = path.join(DESK_DIR, 'reports');
 const STATE_FILE = path.join(BRIDGE_DIR, 'state.json');
+const MODEL_AVAILABILITY_FILE = path.join(BRIDGE_DIR, 'model-availability.json');
 const SETTINGS_FILE = path.join(BRIDGE_DIR, 'claude-settings.json');
 const RUN_LOG_DIR = path.join(BRIDGE_DIR, 'logs', 'phone-runs');
 const INBOUND_MEDIA_DIR = path.join(BRIDGE_DIR, 'logs', 'inbound-media');
@@ -168,6 +208,10 @@ const CODEX_MODEL = process.env.CODEX_MODEL || 'gpt-5.6-sol';
 const CLAUDE_MODEL = process.env.CLAUDE_MODEL || 'claude-fable-5';
 const CLAUDE_MODEL_CANDIDATES = (process.env.CLAUDE_MODEL_CANDIDATES || DEFAULT_CLAUDE_MODELS.join(','))
   .split(',').map((item) => item.trim()).filter(Boolean);
+const AGENT_MODEL_DEFAULTS = { codex: CODEX_MODEL, claude: CLAUDE_MODEL };
+const MODEL_ALIASES = {
+  claude: Object.fromEntries(DEFAULT_CLAUDE_MODELS.map((family) => [family, [family, `claude-${family}`]])),
+};
 const BROKER_AGENT = process.env.BROKER_AGENT || 'claude';
 // full desk runs + report builds regularly pass 30 min; killed runs lose the
 // whole result (seen 2026-07-11: META report SIGTERMed at the old 30-min cap)
@@ -175,6 +219,10 @@ const CLAUDE_TIMEOUT_MS = Number(process.env.CLAUDE_TIMEOUT_MIN || 60) * 60 * 10
 const CODEX_TIMEOUT_MS = Number(process.env.CODEX_TIMEOUT_MIN || 60) * 60 * 1000;
 const MAX_AGENT_ATTEMPTS = Math.max(1, Math.min(4, Number(process.env.MAX_AGENT_ATTEMPTS || 2)));
 const MAX_TOOL_CALLS = Math.max(1, Number(process.env.MAX_TOOL_CALLS || 120));
+const REPORT_RECOVERY_MAX_TOOL_CALLS = Math.max(
+  1,
+  Math.min(48, Number(process.env.REPORT_RECOVERY_MAX_TOOL_CALLS || 24)),
+);
 const MAX_IDENTICAL_TOOL_CALLS = Math.max(1, Number(process.env.MAX_IDENTICAL_TOOL_CALLS || 6));
 const MAX_STREAM_OUTPUT_TOKENS = Math.max(1, Number(process.env.MAX_STREAM_OUTPUT_TOKENS || 64_000));
 const MAX_QUEUE_DEPTH = Math.max(0, Number(process.env.MAX_QUEUE_DEPTH || 5));
@@ -226,6 +274,23 @@ function saveState(s) {
 let state = loadState(); // separate provider sessions + shared last-run metadata
 if (state.sessionId && !state.claudeSessionId) state.claudeSessionId = state.sessionId; // migrate v2
 
+function loadAvailabilityLedger() {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(MODEL_AVAILABILITY_FILE, 'utf8'));
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return Array.isArray(state.modelAvailability) ? state.modelAvailability : [];
+  }
+}
+
+function saveAvailabilityLedger(records) {
+  const tmp = `${MODEL_AVAILABILITY_FILE}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify(Array.isArray(records) ? records : [], null, 2), { mode: 0o600 });
+  fs.renameSync(tmp, MODEL_AVAILABILITY_FILE);
+}
+
+let availabilityLedger = loadAvailabilityLedger();
+
 function migratePendingTicketSet() {
   if (state.pendingTicketSet || state.pendingBrokerExecution) return false;
   const history = Array.isArray(state.recentHistory) ? [...state.recentHistory].reverse() : [];
@@ -257,6 +322,23 @@ function repairFalseCompletedBrokerExecution() {
   state.pendingBrokerExecution.finishedAt = new Date().toISOString();
   state.pendingTicketSet.status = 'pending';
   delete state.pendingTicketSet.handledAt;
+  saveState(state);
+  return true;
+}
+
+function reconcileFinishedBrokerExecution() {
+  const execution = state.pendingBrokerExecution;
+  if (execution?.status !== 'needs_verification' || !execution.finishedAt) return false;
+  if (state.pendingTicketSet?.id !== execution.ticketSetId || state.pendingTicketSet?.status !== 'pending') {
+    return false;
+  }
+  const latestAssistant = [...(Array.isArray(state.recentHistory) ? state.recentHistory : [])]
+    .reverse().find((item) => item?.role === 'assistant');
+  if (!latestAssistant || !brokerExecutionSucceeded(latestAssistant.text)) return false;
+  execution.status = 'completed';
+  execution.reconciledAt = new Date().toISOString();
+  state.pendingTicketSet.status = 'handled';
+  state.pendingTicketSet.handledAt = new Date().toISOString();
   saveState(state);
   return true;
 }
@@ -399,6 +481,9 @@ function runClaude(prompt, onEvent = () => {}, model = CLAUDE_MODEL, attachments
     if (runtime.trustedBrokerApproval) {
       args.push('--append-system-prompt', runtime.trustedBrokerApproval);
     }
+    if (runtime.reportRecoveryInstructions) {
+      args.push('--append-system-prompt', runtime.reportRecoveryInstructions);
+    }
     if (state.claudeSessionId) args.push('--resume', state.claudeSessionId);
 
     const child = spawn(CLAUDE_BIN, args, {
@@ -417,9 +502,9 @@ function runClaude(prompt, onEvent = () => {}, model = CLAUDE_MODEL, attachments
     let lastTroubleMs = 0, troubleCount = 0;
     const toolNames = new Map();
     const guard = createRunCircuitBreaker({
-      maxToolCalls: MAX_TOOL_CALLS,
-      maxIdenticalToolCalls: MAX_IDENTICAL_TOOL_CALLS,
-      maxOutputTokens: MAX_STREAM_OUTPUT_TOKENS,
+      maxToolCalls: Number(runtime.maxToolCalls) || MAX_TOOL_CALLS,
+      maxIdenticalToolCalls: Number(runtime.maxIdenticalToolCalls) || MAX_IDENTICAL_TOOL_CALLS,
+      maxOutputTokens: Number(runtime.maxOutputTokens) || MAX_STREAM_OUTPUT_TOKENS,
     });
     const tripCircuit = (reason) => {
       if (circuitBroken) return;
@@ -461,6 +546,10 @@ function runClaude(prompt, onEvent = () => {}, model = CLAUDE_MODEL, attachments
           for (const c of ev.message?.content || []) {
             if (c.type !== 'tool_use') continue;
             toolNames.set(c.id, c.name);
+            if (runtime.blockBrokerActions && isBrokerWriteTool(c.name)) {
+              tripCircuit(`report recovery blocked broker order tool (${c.name})`);
+              break;
+            }
             onEvent('execution', { agent: 'claude', phase: 'started', tool: c.name,
               summary: summarizeTool(c.name, c.input) });
             const toolStop = guard.observeTool(JSON.stringify([c.name, c.input]));
@@ -561,7 +650,12 @@ function runClaude(prompt, onEvent = () => {}, model = CLAUDE_MODEL, attachments
 function runCodex(prompt, onEvent = () => {}, model = CODEX_MODEL, attachments = [], runtime = {}) {
   return new Promise((resolve) => {
     const phonePrompt = prompt;
-    const developerInstructions = [chatRulesBase(), modeRules(currentMode()), runtime.trustedBrokerApproval]
+    const developerInstructions = [
+      chatRulesBase(),
+      modeRules(currentMode()),
+      runtime.trustedBrokerApproval,
+      runtime.reportRecoveryInstructions,
+    ]
       .filter(Boolean).join('\n\n');
     // Headless runs have no stdin, so interactive MCP confirmations are
     // interpreted as "user cancelled MCP tool call". Full CLI access is
@@ -584,9 +678,9 @@ function runCodex(prompt, onEvent = () => {}, model = CODEX_MODEL, attachments =
     let buf = '', err = '', eventTail = '', availabilityError = '', finalText = '', sessionId = null, usage = null;
     let started = false, timedOut = false, settled = false, circuitBroken = null;
     const guard = createRunCircuitBreaker({
-      maxToolCalls: MAX_TOOL_CALLS,
-      maxIdenticalToolCalls: MAX_IDENTICAL_TOOL_CALLS,
-      maxOutputTokens: MAX_STREAM_OUTPUT_TOKENS,
+      maxToolCalls: Number(runtime.maxToolCalls) || MAX_TOOL_CALLS,
+      maxIdenticalToolCalls: Number(runtime.maxIdenticalToolCalls) || MAX_IDENTICAL_TOOL_CALLS,
+      maxOutputTokens: Number(runtime.maxOutputTokens) || MAX_STREAM_OUTPUT_TOKENS,
     });
     const finish = (value) => { if (settled) return; settled = true; resolve(value); };
     const tripCircuit = (reason) => {
@@ -613,6 +707,10 @@ function runCodex(prompt, onEvent = () => {}, model = CODEX_MODEL, attachments =
           const tool = item.type === 'command_execution' ? 'command'
             : item.type === 'mcp_tool_call' ? `${item.server || 'mcp'}.${item.tool || 'tool'}` : 'web search';
           const summary = item.type === 'command_execution' ? String(item.command || '').replace(/\s+/g, ' ').slice(0, 900) : '';
+          if (runtime.blockBrokerActions && isBrokerWriteTool(tool)) {
+            tripCircuit(`report recovery blocked broker order tool (${tool})`);
+            continue;
+          }
           onEvent('execution', { agent: 'codex', phase: 'started', tool, summary });
           const toolStop = guard.observeTool(JSON.stringify([
             ev.item.type, ev.item.server, ev.item.tool, ev.item.arguments, ev.item.command,
@@ -681,6 +779,12 @@ function runCodex(prompt, onEvent = () => {}, model = CODEX_MODEL, attachments =
 
 let codexCatalogCache = { at: 0, models: [] };
 
+// Add future runtime adapters here; ordering and saved preference behavior are
+// handled by the provider-neutral registry module.
+function agentRunners() {
+  return { codex: runCodex, claude: runClaude };
+}
+
 function currentCodexModels() {
   if (Date.now() - codexCatalogCache.at < 5 * 60_000 && codexCatalogCache.models.length) {
     return codexCatalogCache.models;
@@ -703,8 +807,8 @@ function createPendingModelSwitch(last, prompt, history, attachments = []) {
   const choiceSet = buildModelChoiceSet({
     failedAgent,
     failedModel,
-    claudeModels: CLAUDE_MODEL_CANDIDATES,
-    codexModels: currentCodexModels(),
+    claudeModels: routableModels('claude', CLAUDE_MODEL_CANDIDATES),
+    codexModels: routableModels('codex', currentCodexModels()),
   });
   return {
     failedAgent,
@@ -722,7 +826,7 @@ function createPendingModelSwitch(last, prompt, history, attachments = []) {
 }
 
 async function runAutomaticModelPlan(prompt, onEvent, attachments, preferredAgent, options = {}) {
-  const runners = { codex: runCodex, claude: runClaude };
+  const runners = agentRunners();
   if (options.resetSessions || options.resetBrokerSession) {
     state.sessionId = null;
     state.claudeSessionId = null;
@@ -732,12 +836,18 @@ async function runAutomaticModelPlan(prompt, onEvent, attachments, preferredAgen
   }
   const plan = buildInterleavedModelPlan({
     preferredAgent,
-    defaultClaudeModel: options.preferredChoice?.agent === 'claude'
-      ? options.preferredChoice.model : selectedDefaultModel('claude'),
-    defaultCodexModel: options.preferredChoice?.agent === 'codex'
-      ? options.preferredChoice.model : selectedDefaultModel('codex'),
-    claudeModels: CLAUDE_MODEL_CANDIDATES,
-    codexModels: currentCodexModels(),
+    defaultClaudeModel: routableDefaultModel(
+      'claude',
+      options.preferredChoice?.agent === 'claude'
+        ? options.preferredChoice.model : selectedDefaultModel('claude'),
+    ),
+    defaultCodexModel: routableDefaultModel(
+      'codex',
+      options.preferredChoice?.agent === 'codex'
+        ? options.preferredChoice.model : selectedDefaultModel('codex'),
+    ),
+    claudeModels: routableModels('claude', CLAUDE_MODEL_CANDIDATES),
+    codexModels: routableModels('codex', currentCodexModels()),
     maxPerAgent: 3,
   }).filter((choice) => runners[choice.agent]);
   const runLabel = options.scheduledKind ? 'scheduled run' : 'full-auto run';
@@ -786,6 +896,11 @@ async function runAutomaticModelPlan(prompt, onEvent, attachments, preferredAgen
       };
       let result = await runners[choice.agent](routedPrompt, trackedEvent, choice.model, attachments, {
         trustedBrokerApproval: options.trustedBrokerApproval,
+        reportRecoveryInstructions: options.reportRecoveryInstructions,
+        blockBrokerActions: options.blockBrokerActions,
+        maxToolCalls: options.maxToolCalls,
+        maxIdenticalToolCalls: options.maxIdenticalToolCalls,
+        maxOutputTokens: options.maxOutputTokens,
       });
       if (result.ok && shouldFallbackForBroker(prompt, result.text)) {
         result = {
@@ -859,13 +974,14 @@ async function runAutomaticModelPlan(prompt, onEvent, attachments, preferredAgen
 }
 
 async function runPreferredAgent(prompt, onEvent = () => {}, forcedChoice = null, attachments = [], options = {}) {
-  const runners = { codex: runCodex, claude: runClaude };
+  const runners = agentRunners();
   const available = [...new Set([...AGENT_PRIORITY, ...Object.keys(runners)])]
     .filter((name) => runners[name]);
   const preference = available.includes(state.agentPreference) ? state.agentPreference : available[0];
   const configuredOrder = preferredAgentOrder(preference, available);
   const history = Array.isArray(state.recentHistory) ? state.recentHistory.slice(-8) : [];
-  const brokerKind = options.brokerKind || brokerRequestKind(prompt, history);
+  const brokerKind = options.disableBrokerRouting
+    ? null : (options.brokerKind || brokerRequestKind(prompt, history));
   const temporaryChoice = !forcedChoice && !options.autoModelFallback
     ? temporaryChoiceForRun(state.temporaryModelChoice, preference, Boolean(brokerKind)) : null;
   const effectiveChoice = forcedChoice || temporaryChoice;
@@ -914,8 +1030,32 @@ async function runPreferredAgent(prompt, onEvent = () => {}, forcedChoice = null
       ? brokerFirstPrompt(prompt, brokerKind, history) : prompt;
     const chosenModel = effectiveChoice?.agent === name
       ? effectiveChoice.model : selectedDefaultModel(name);
+    const knownFailure = recordedModelFailure(name, chosenModel);
+    if (knownFailure) {
+      last = {
+        ok: false,
+        agent: name,
+        model: chosenModel,
+        fallbackEligible: true,
+        switchReason: `${agentLabel(name, chosenModel)} is unavailable: ${availabilityRetryLabel(knownFailure)}`,
+        resetAtMs: knownFailure.resetAtMs || null,
+        text: `${agentLabel(name, chosenModel)} remains unavailable (${availabilityRetryLabel(knownFailure)}).`,
+      };
+      const pendingModelSwitch = createPendingModelSwitch(last, prompt, history, attachments);
+      return {
+        ...last,
+        pausedForModel: true,
+        pendingModelSwitch,
+        text: formatModelChoiceForPhone(pendingModelSwitch),
+      };
+    }
     last = await runner(basePrompt, onEvent, chosenModel, attachments, {
       trustedBrokerApproval: options.trustedBrokerApproval,
+      reportRecoveryInstructions: options.reportRecoveryInstructions,
+      blockBrokerActions: options.blockBrokerActions,
+      maxToolCalls: options.maxToolCalls,
+      maxIdenticalToolCalls: options.maxIdenticalToolCalls,
+      maxOutputTokens: options.maxOutputTokens,
     });
     if (last.ok && shouldFallbackForBroker(prompt, last.text)) {
       last = {
@@ -1181,23 +1321,21 @@ async function telegramInboundImages(message) {
   return collectInboundImages(sources);
 }
 
-// Pull "FILE: /abs/path" directives out of a reply. Only files inside the desk
-// repo may leave the laptop — and never anything under the bridge dir (.env).
+// Resolve symlinks before applying the last-mile file policy. A repo-local link
+// to a secret must not bypass a string-prefix check.
 function extractFileDirectives(reply) {
   const files = [], lines = [];
   for (const line of String(reply).split('\n')) {
     const m = line.match(/^\s*FILE:\s*(\/\S.*?)\s*$/);
     if (!m) { lines.push(line); continue; }
-    const p = path.resolve(m[1]);
-    const inDesk = p.startsWith(DESK_DIR + path.sep);
-    const inBridge = p.startsWith(BRIDGE_DIR + path.sep);
-    const hidden = p.split(path.sep).some((seg) => seg.startsWith('.'));
-    let ok = inDesk && !inBridge && !hidden;
+    let real = null;
+    try { real = fs.realpathSync(path.resolve(m[1])); } catch { real = null; }
+    let ok = Boolean(real) && !forbiddenSendPath(real, DESK_DIR, BRIDGE_DIR);
     if (ok) {
-      try { const st = fs.statSync(p); ok = st.isFile() && st.size < 45 * 1024 * 1024; }
+      try { const st = fs.lstatSync(real); ok = st.isFile() && st.size < 45 * 1024 * 1024; }
       catch { ok = false; }
     }
-    if (ok) files.push(p);
+    if (ok) files.push(real);
     else { log(`blocked FILE directive: ${m[1]}`); lines.push(`(file not sendable: ${path.basename(m[1])})`); }
   }
   return { text: lines.join('\n').trim(), files };
@@ -1476,6 +1614,79 @@ async function deliverExecutionTranscript(to, transcript, ok) {
   return Boolean(sent);
 }
 
+async function deliverRunFiles(to, explicitFiles, reportSnapshot, runStartedMs) {
+  const delivery = await deliverReportArtifacts({
+    reportsDir: REPORTS_DIR,
+    before: reportSnapshot,
+    runStartedMs,
+    explicitFiles,
+    sendFile: messenger.sendFile
+      ? (filePath, caption) => messenger.sendFile(to, filePath, caption) : null,
+  });
+  for (const item of delivery.outcomes) {
+    if (item.status === 'sent') {
+      logEvent('file_sent', {
+        file: path.basename(item.filePath), automatic_report: item.automaticReport, ok: true,
+      });
+    } else if (item.status === 'unsupported') {
+      await sendText(
+        to,
+        `(report ready on the laptop: ${item.filePath} — ${PROVIDER} file delivery is not enabled yet)`,
+      );
+    } else {
+      logEvent('file_delivery_error', {
+        provider: PROVIDER,
+        file: path.basename(item.filePath),
+        error: item.error || 'provider rejected document',
+      });
+      await sendText(to, `⚠️ Could not attach ${path.basename(item.filePath)}. It remains saved locally.`);
+    }
+  }
+  return delivery;
+}
+
+function renderReportDraft(draftPath) {
+  return new Promise((resolve) => {
+    const source = path.resolve(draftPath);
+    const output = path.join(REPORTS_DIR, `${path.basename(source, '.md')}.html`);
+    const chartsDir = path.join(REPORTS_DIR, 'assets', 'charts', path.basename(path.dirname(source)));
+    const child = spawn('python3', [
+      path.join(DESK_DIR, 'scripts', 'report', 'build_report.py'),
+      source,
+      '--out', output,
+      '--charts-dir', chartsDir,
+    ], { cwd: DESK_DIR, stdio: ['ignore', 'pipe', 'pipe'], env: managedAgentEnv() });
+    let stderr = '';
+    const timer = setTimeout(() => child.kill('SIGTERM'), 60_000);
+    child.stderr.on('data', (chunk) => { stderr = (stderr + chunk).slice(-1200); });
+    child.on('error', (error) => {
+      clearTimeout(timer);
+      resolve({ ok: false, error: error.message });
+    });
+    child.on('close', (code) => {
+      clearTimeout(timer);
+      resolve({
+        ok: code === 0,
+        error: code === 0 ? null : stderr.trim() || `build_report.py exited ${code}`,
+      });
+    });
+  });
+}
+
+async function recoverReportArtifacts(draftSnapshot, runStartedMs) {
+  let drafts = [];
+  try { drafts = recoverableReportDrafts(REPORTS_DIR, draftSnapshot, runStartedMs); }
+  catch (error) { return { built: 0, errors: [error.message] }; }
+  const errors = [];
+  let built = 0;
+  for (const draft of drafts) {
+    const rendered = await renderReportDraft(draft.realPath);
+    if (rendered.ok) built++;
+    else errors.push(`${path.basename(draft.realPath)}: ${rendered.error}`);
+  }
+  return { built, errors };
+}
+
 async function deliverChangeReview(to, snapshotDir, request, outcome, reason = {}) {
   let review;
   try {
@@ -1504,6 +1715,10 @@ async function deliverChangeReview(to, snapshotDir, request, outcome, reason = {
 
 async function applyDeferredRestart(to, transcript) {
   if (!fs.existsSync(RESTART_REQUEST_FILE)) return false;
+  if (queueDepth > 0) {
+    logEvent('restart_deferred_queue_busy', { queue_depth: queueDepth });
+    return false;
+  }
   let request = {};
   try { request = JSON.parse(fs.readFileSync(RESTART_REQUEST_FILE, 'utf8')); } catch { /* malformed still means requested */ }
   try { fs.unlinkSync(RESTART_REQUEST_FILE); } catch { /* helper must still run */ }
@@ -1540,14 +1755,15 @@ let availabilityRetryTimer = null;
 let temporaryDiscoveryTimer = null;
 
 function selectedDefaultAgent() {
-  const configured = AGENT_PRIORITY.find((name) => ['codex', 'claude'].includes(name)) || 'codex';
-  return ['codex', 'claude'].includes(state.agentPreference) ? state.agentPreference : configured;
+  return selectedRegisteredAgent(
+    state.agentPreference,
+    AGENT_PRIORITY,
+    Object.keys(agentRunners()),
+  );
 }
 
 function selectedDefaultModel(agent = selectedDefaultAgent()) {
-  const configured = agent === 'claude' ? CLAUDE_MODEL : CODEX_MODEL;
-  const saved = state.agentModelPreferences?.[agent];
-  return typeof saved === 'string' && saved.trim() ? saved.trim() : configured;
+  return selectedAgentModel(agent, AGENT_MODEL_DEFAULTS, state.agentModelPreferences);
 }
 
 // Availability is an observed fact, not a guess made while drawing /agent.
@@ -1555,49 +1771,20 @@ function selectedDefaultModel(agent = selectedDefaultAgent()) {
 // completed handoff, or a manual default change cannot make a known
 // rate-limited model look available again.
 function recordedAvailabilityFailures() {
-  return Array.isArray(state.modelAvailability) ? state.modelAvailability : [];
-}
-
-function retryDateStartMs(value) {
-  const day = String(value || '').match(/^\d{4}-\d{2}-\d{2}$/)?.[0];
-  const parsed = day ? new Date(`${day}T00:00:00`).getTime() : NaN;
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
-function availabilityRecordIsCurrent(record, nowMs = Date.now()) {
-  if (!record) return false;
-  const resetAtMs = Number(record.resetAtMs);
-  if (Number.isFinite(resetAtMs) && resetAtMs > nowMs) return true;
-  const retryAtMs = retryDateStartMs(record.retryDate);
-  if (retryAtMs && retryAtMs > nowMs) return true;
-  const expiresAtMs = Number(record.expiresAtMs);
-  return Number.isFinite(expiresAtMs) && expiresAtMs > nowMs;
+  return availabilityLedger;
 }
 
 function persistModelAvailabilityFailure(agent, model, details = {}) {
-  const nowMs = Date.now();
-  const existing = recordedAvailabilityFailures().find((item) =>
-    item?.agent === agent && sameModel(agent, item?.model, model));
-  const resetAtMs = Number(details.resetAtMs);
-  const next = {
+  availabilityLedger = recordAvailabilityFailure(
+    recordedAvailabilityFailures(),
     agent,
     model,
-    reason: String(details.reason || existing?.reason || 'availability failure').replace(/\s+/g, ' ').slice(0, 300),
-    observedAtMs: nowMs,
-    ...(Number.isFinite(resetAtMs) && resetAtMs > nowMs ? { resetAtMs } : {}),
-    ...(details.retryDate || existing?.retryDate ? { retryDate: details.retryDate || existing.retryDate } : {}),
-    // Generic rate-limit/auth errors have no provider reset time. Retain the
-    // observed outage for a bounded period instead of branding it unavailable
-    // forever; a real successful run clears it early.
-    ...(!Number.isFinite(resetAtMs) && !(details.retryDate || existing?.retryDate)
-      ? { expiresAtMs: nowMs + 4 * 60 * 60_000 } : {}),
-  };
-  state.modelAvailability = [
-    ...recordedAvailabilityFailures().filter((item) =>
-      !(item?.agent === agent && sameModel(agent, item?.model, model))),
-    next,
-  ].slice(-32);
-  saveState(state);
+    details,
+    Date.now(),
+    MODEL_ALIASES,
+  );
+  saveAvailabilityLedger(availabilityLedger);
+  const next = availabilityLedger.at(-1);
   logEvent('model_availability_recorded', { agent, model, reset_at: next.resetAtMs || null,
     retry_date: next.retryDate || null, reason: next.reason });
   return next;
@@ -1605,22 +1792,33 @@ function persistModelAvailabilityFailure(agent, model, details = {}) {
 
 function clearModelAvailabilityFailure(agent, model, source = 'successful_run') {
   const records = recordedAvailabilityFailures();
-  const next = records.filter((item) => !(item?.agent === agent && sameModel(agent, item?.model, model)));
+  const next = clearAvailabilityFailure(records, agent, model, MODEL_ALIASES);
   if (next.length === records.length) return false;
-  state.modelAvailability = next;
-  saveState(state);
+  availabilityLedger = next;
+  saveAvailabilityLedger(availabilityLedger);
   logEvent('model_availability_cleared', { agent, model, source });
   return true;
 }
 
 function recordedModelFailure(agent, model) {
-  return [...recordedAvailabilityFailures()].reverse().find((item) =>
-    item?.agent === agent && sameModel(agent, item?.model, model) && availabilityRecordIsCurrent(item)) || null;
+  return findAvailabilityFailure(
+    recordedAvailabilityFailures(), agent, model, Date.now(), MODEL_ALIASES,
+  );
+}
+
+function routableModels(agent, models) {
+  return filterAvailableModels(
+    recordedAvailabilityFailures(), agent, models, Date.now(), MODEL_ALIASES,
+  );
+}
+
+function routableDefaultModel(agent, model) {
+  return recordedModelFailure(agent, model) ? undefined : model;
 }
 
 function isModelAvailabilityFailure(result) {
   if (!result || result.ok) return false;
-  return Number.isFinite(Number(result.resetAtMs)) ||
+  return explicitFutureResetAtMs(result.resetAtMs) !== null ||
     availabilityFailure(`${result.switchReason || ''}\n${result.text || ''}`);
 }
 
@@ -1743,25 +1941,13 @@ function scheduleAvailabilityRecovery(pending, replyTo) {
 }
 
 function alternativeAgentLabels(preferred) {
-  const available = [...new Set([...AGENT_PRIORITY, 'codex', 'claude'])]
-    .filter((name) => ['codex', 'claude'].includes(name));
+  const available = configuredAgentNames();
   return preferredAgentOrder(preferred, available).slice(1)
     .map((name) => agentLabel(name, selectedDefaultModel(name)));
 }
 
 function configuredAgentNames() {
-  return [...new Set([...AGENT_PRIORITY, 'codex', 'claude'])]
-    .filter((name) => ['codex', 'claude'].includes(name));
-}
-
-function sameModel(agent, left, right) {
-  const a = String(left || '').toLowerCase();
-  const b = String(right || '').toLowerCase();
-  if (!a || !b) return false;
-  if (a === b) return true;
-  if (agent !== 'claude') return false;
-  const family = (value) => ['fable', 'opus', 'sonnet', 'haiku'].find((name) => value.includes(name));
-  return Boolean(family(a) && family(a) === family(b));
+  return registeredAgentNames(AGENT_PRIORITY, Object.keys(agentRunners()));
 }
 
 function knownModelFailure(agent, model) {
@@ -1771,26 +1957,10 @@ function knownModelFailure(agent, model) {
       agent: item.failedAgent || item.agent,
       model: item.failedModel || item.model,
       resetAtMs: item.resetAtMs,
-    }));
+  }));
   return recordedModelFailure(agent, model) ||
-    transient.find((item) => item.agent === agent && sameModel(agent, item.model, model)) || null;
-}
-
-function availabilityRetryLabel(failure) {
-  const resetAtMs = Number(failure?.resetAtMs);
-  if (Number.isFinite(resetAtMs) && resetAtMs > Date.now()) {
-    return `retry after ${new Date(resetAtMs).toLocaleString('en-US', {
-      month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
-    })}`;
-  }
-  const retryDate = String(failure?.retryDate || '');
-  if (/^\d{4}-\d{2}-\d{2}$/.test(retryDate)) {
-    return `retry on ${new Date(`${retryDate}T12:00:00`).toLocaleDateString('en-US', {
-      month: 'short', day: 'numeric',
-    })} (provider reset date)`;
-  }
-  return failure?.reason?.includes('usage limit')
-    ? 'usage-limited; retry later' : 'recent availability failure';
+    transient.find((item) => item.agent === agent
+      && sameAgentModel(agent, item.model, model, MODEL_ALIASES)) || null;
 }
 
 function modelAvailability(agent, item) {
@@ -1843,9 +2013,12 @@ function newManualAgentChoice(agents = configuredAgentNames()) {
 
 function setDefaultAgentPreference(choice) {
   const want = choice.agent;
-  state.agentPreference = want;
   if (choice.explicitModel && choice.model) {
-    state.agentModelPreferences = { ...(state.agentModelPreferences || {}), [want]: choice.model };
+    const selected = applyAgentModelSelection(state, choice, configuredAgentNames());
+    if (!selected) throw new Error(`agent/model selection is not registered: ${want}`);
+    state = selected;
+  } else {
+    state.agentPreference = want;
   }
   delete state.pendingAgentChoice;
   delete state.temporaryModelChoice;
@@ -2029,6 +2202,8 @@ async function handleInbound(replyTo, text, sentAtMs = null, attachments = [], c
   let changeSnapshotDir = continuationSnapshotDir;
   let inheritedChangeReason = {};
   let runAttachments = attachments.slice(0, MAX_INBOUND_IMAGES);
+  let reportSnapshot = {};
+  let reportDraftSnapshot = {};
   if (brokerExecution) {
     agentPrompt = brokerExecution.userText || text;
   } else if (!runAttachments.length && !text.trim().startsWith('/')) {
@@ -2117,7 +2292,14 @@ async function handleInbound(replyTo, text, sentAtMs = null, attachments = [], c
   // trouble (rate limit / fetch failure) the moment it appears → elapsed
   // pings → result or error
   const looksLong = /report|scan|sweep|analy|research|review|deep|audit|run/i.test(text);
+  const reportRequest = isReportRequest(agentPrompt, runOptions);
   const startMs = Date.now();
+  if (reportRequest) {
+    try { reportSnapshot = captureReportSnapshot(REPORTS_DIR); }
+    catch (e) { logEvent('report_snapshot_error', { error: e.message }); }
+    try { reportDraftSnapshot = captureReportDraftSnapshot(REPORTS_DIR); }
+    catch (e) { logEvent('report_draft_snapshot_error', { error: e.message }); }
+  }
   if (!changeSnapshotDir || !fs.existsSync(changeSnapshotDir)) {
     try { changeSnapshotDir = captureWorkspaceSnapshot(DESK_DIR, CHANGE_SNAPSHOT_DIR); }
     catch (e) { changeSnapshotDir = null; logEvent('change_snapshot_error', { error: e.message }); }
@@ -2126,6 +2308,7 @@ async function handleInbound(replyTo, text, sentAtMs = null, attachments = [], c
   if (runAttachments.length) transcript.append('IMAGES', `${runAttachments.length} private inbound image${runAttachments.length === 1 ? '' : 's'}`);
   const runView = createRemoteRunView(text, startMs);
   activeRun = { prompt: text, startedMs: startMs, replyTo, transcript, view: runView, changeSnapshotDir,
+    reportSnapshot,
     brokerExecutionId: brokerExecution?.id || null };
   const timers = [];
   const rotated = rotateSessionIfNeeded();
@@ -2161,6 +2344,8 @@ async function handleInbound(replyTo, text, sentAtMs = null, attachments = [], c
   let agentStartS = null;
   let agentStartedTimer = null;
   let agentStartedDetail = null;
+  const scheduledPreflight = runOptions.scheduledKind && runOptions.scheduledKind !== 'test'
+    ? createBrokerPreflightTracker() : null;
   const flushAgentStarted = () => {
     if (!agentStartedTimer || !agentStartedDetail) return;
     clearTimeout(agentStartedTimer);
@@ -2174,7 +2359,8 @@ async function handleInbound(replyTo, text, sentAtMs = null, attachments = [], c
     }
     agentStartedDetail = null;
   };
-  let result = await runPreferredAgent(agentPrompt, (kind, detail) => {
+  const onRunEvent = (kind, detail) => {
+    scheduledPreflight?.observe(kind, detail);
     activeRun?.liveMonitor?.event(kind, detail);
     if (kind === 'started') {
       agentStartS = Math.round((Date.now() - startMs) / 1000);
@@ -2196,18 +2382,134 @@ async function handleInbound(replyTo, text, sentAtMs = null, attachments = [], c
       sendStatus(replyTo, 'trouble', `⚠️ Hit an issue mid-run — the agent is retrying / working around it:\n${detail}`);
       logEvent('run_trouble', { detail });
     } else if (kind === 'circuit_breaker') {
-      sendStatus(replyTo, 'circuit_breaker', `🛑 Circuit breaker stopped the run to prevent a loop or excess token use.\n${detail?.reason || 'Safety limit reached.'}`);
+      const recoveryNote = reportRequest && !brokerExecution
+        ? 'Completed report work will be preserved for one bounded recovery.'
+        : 'The run was stopped to prevent a loop or excess token use.';
+      sendStatus(replyTo, 'circuit_breaker', `🛑 Circuit breaker stopped this pass.\n${detail?.reason || 'Safety limit reached.'}\n${recoveryNote}`);
       logEvent('circuit_breaker', detail || {});
       transcript.append('STOP', detail?.reason || 'circuit breaker');
     } else if (kind === 'execution') {
       const line = toolEventLine(detail);
       transcript.append(line.kind, line.text);
     }
-  }, forcedChoice, runAttachments, runOptions);
+  };
+  let result = await runPreferredAgent(
+    agentPrompt, onRunEvent, forcedChoice, runAttachments, runOptions,
+  );
   if (agentStartedTimer) {
     clearTimeout(agentStartedTimer);
     agentStartedTimer = null;
     agentStartedDetail = null;
+  }
+
+  let reportRecoveryAttempted = false;
+  if (!result.ok && reportRequest && !activeRun?.interrupt && !brokerExecution) {
+    const artifactRecovery = await recoverReportArtifacts(reportDraftSnapshot, startMs);
+    if (artifactRecovery.errors.length) {
+      logEvent('report_artifact_recovery_failed', { errors: artifactRecovery.errors });
+    }
+    let reportAlreadyBuilt = false;
+    try {
+      reportAlreadyBuilt = generatedHtmlReports(REPORTS_DIR, reportSnapshot, startMs).length > 0
+        && (!scheduledPreflight || scheduledPreflight.attempted);
+    } catch (error) {
+      logEvent('report_recovery_artifact_check_error', { error: error.message });
+    }
+    if (reportAlreadyBuilt) {
+      result = {
+        ok: true,
+        agent: 'bridge',
+        model: 'artifact-recovery',
+        fallbackEligible: false,
+        text: artifactRecovery.built
+          ? `Recovered ${artifactRecovery.built} completed HTML report artifact.`
+          : 'Recovered the completed HTML report artifact from the interrupted run.',
+        artifactRecovery: true,
+      };
+      logEvent('report_artifact_recovered', { built: artifactRecovery.built });
+    } else if (shouldRecoverReportRun({
+      result,
+      prompt: agentPrompt,
+      options: runOptions,
+      brokerExecution: false,
+      alreadyRecovered: reportRecoveryAttempted,
+      reportAlreadyBuilt,
+    })) {
+      reportRecoveryAttempted = true;
+      const failed = result;
+      const recoveryPrompt = buildReportRecoveryPrompt({
+        originalPrompt: agentPrompt,
+        maxToolCalls: REPORT_RECOVERY_MAX_TOOL_CALLS,
+        scheduledKind: runOptions.scheduledKind,
+      });
+      const recoveryChoice = configuredAgentNames().includes(failed.agent) && failed.model
+        ? { agent: failed.agent, model: failed.model } : null;
+      const savedSessions = {
+        claudeSessionId: state.claudeSessionId,
+        codexSessionId: state.codexSessionId,
+      };
+      state.claudeSessionId = null;
+      state.codexSessionId = null;
+      saveState(state);
+      await sendStatus(
+        replyTo,
+        'report_recovery',
+        '♻️ Report work reached its safety budget. Running one fresh, bounded artifact-completion pass; no broker order action is permitted.',
+      );
+      logEvent('report_recovery_started', {
+        agent: failed.agent,
+        model: failed.model,
+        max_tool_calls: REPORT_RECOVERY_MAX_TOOL_CALLS,
+        scheduled_kind: runOptions.scheduledKind || null,
+      });
+      try {
+        result = await runPreferredAgent(recoveryPrompt, onRunEvent, recoveryChoice, [], {
+          autoModelFallback: false,
+          disableBrokerRouting: true,
+          reportRecoveryInstructions: reportRecoverySafetyInstructions(),
+          blockBrokerActions: true,
+          maxToolCalls: REPORT_RECOVERY_MAX_TOOL_CALLS,
+          maxIdenticalToolCalls: Math.min(MAX_IDENTICAL_TOOL_CALLS, 4),
+          maxOutputTokens: Math.min(MAX_STREAM_OUTPUT_TOKENS, 24_000),
+        });
+      } finally {
+        state.claudeSessionId = savedSessions.claudeSessionId;
+        state.codexSessionId = savedSessions.codexSessionId;
+        saveState(state);
+      }
+      if (result.pausedForModel) {
+        result = {
+          ok: false,
+          agent: result.agent,
+          model: result.model,
+          fallbackEligible: false,
+          reportRecovery: true,
+          text: 'The single bounded report recovery could not start because its selected model was unavailable.',
+        };
+      } else {
+        result = { ...result, reportRecovery: true };
+      }
+      const postRecoveryArtifacts = await recoverReportArtifacts(reportDraftSnapshot, startMs);
+      const preflightOk = !scheduledPreflight || scheduledPreflight.attempted;
+      let completedArtifacts = [];
+      try { completedArtifacts = generatedHtmlReports(REPORTS_DIR, reportSnapshot, startMs); }
+      catch (error) { logEvent('report_recovery_artifact_check_error', { error: error.message }); }
+      if (result.ok && (!completedArtifacts.length || !preflightOk)) {
+        result = {
+          ...result,
+          ok: false,
+          fallbackEligible: false,
+          text: !preflightOk
+            ? 'Scheduled report recovery stopped because the required read-only broker preflight was not observed.'
+            : 'The bounded recovery finished without producing a completed HTML report artifact.',
+        };
+      }
+      logEvent('report_recovery_finished', {
+        ok: result.ok,
+        artifacts: completedArtifacts.length,
+        rendered_drafts: postRecoveryArtifacts.built,
+      });
+    }
   }
   if (activeRun?.interrupt && !result.interrupted) {
     result = { ok: false, interrupted: true, agent: activeRun.agent || result.agent,
@@ -2360,7 +2662,19 @@ async function handleInbound(replyTo, text, sentAtMs = null, attachments = [], c
     await activeRun?.liveMonitor?.finish('failed', String(rawReply).trim().slice(0, 110));
     state.lastRunView = activeRun?.view;
     saveState(state);
-    await sendText(replyTo, `⚠️ Error — the run failed:\n${String(rawReply).trim().slice(0, 3000) || '(no error detail)'}`);
+    const canDeliverFailedReport = reportRequest
+      && (!scheduledPreflight || scheduledPreflight.attempted);
+    const failedReportDelivery = canDeliverFailedReport
+      ? await deliverRunFiles(replyTo, [], reportSnapshot, startMs)
+      : { delivered: 0, discoveredReports: 0 };
+    await sendText(replyTo, [
+      '⚠️ Error — the run failed.',
+      result.reportRecovery
+        ? 'The initial pass hit its safety cap and the single bounded recovery did not finish.' : '',
+      failedReportDelivery.delivered
+        ? `A completed HTML report was still recovered and attached (${failedReportDelivery.delivered}).` : '',
+      String(rawReply).trim().slice(0, 3000) || '(no error detail)',
+    ].filter(Boolean).join('\n'));
     await deliverChangeReview(replyTo, changeSnapshotDir, text, String(rawReply).trim(), combinedChangeReason);
     await deliverExecutionTranscript(replyTo, transcript, false);
     activeRun = null;
@@ -2373,19 +2687,31 @@ async function handleInbound(replyTo, text, sentAtMs = null, attachments = [], c
   let changeReview = null;
   const { text: replyText, files } = extractFileDirectives(reply);
   if (replyText) {
-    const finalReply = sanitizePhoneText(replyText, { maxChars: messenger.maxTextChars, maxLines: 5 });
+    const numberedItems = (replyText.match(/^\s*\d+[.)]\s+\S/gm) || []).length;
+    const maxLines = numberedItems >= 3 ? Math.min(numberedItems + 4, 40) : 5;
+    const finalReply = sanitizePhoneText(replyText, { maxChars: messenger.maxTextChars, maxLines });
     if (finalReply.redactions || finalReply.shortened) {
       logEvent('final_reply_sanitized', { redactions: finalReply.redactions, shortened: finalReply.shortened });
     }
     if (finalReply.text) await sendText(replyTo, finalReply.text);
   }
-  for (const f of files) {
-    if (messenger.sendFile) {
-      await messenger.sendFile(replyTo, f, path.basename(f));
-      log(`sent file: ${f}`);
-      logEvent('file_sent', { file: f });
-    } else {
-      await sendText(replyTo, `(report ready on the laptop: ${f} — ${PROVIDER} file delivery is not enabled yet)`);
+  const fileDelivery = await deliverRunFiles(replyTo, files, reportSnapshot, startMs);
+  const executionMode = currentMode();
+  if (!brokerExecution
+      && ticketParsed.tickets.length
+      && (executionMode === 'semi' || executionMode === 'manual')) {
+    const itemsMessage = formatExecutionItemsMessage(ticketParsed.tickets, { mode: executionMode });
+    if (itemsMessage) {
+      const items = sanitizePhoneText(itemsMessage, {
+        maxChars: messenger.maxTextChars,
+        maxLines: ticketParsed.tickets.length + 4,
+      });
+      if (items.text) await sendText(replyTo, items.text);
+      logEvent('execution_items_sent', {
+        ticket_set: state.pendingTicketSet?.id || null,
+        count: ticketParsed.tickets.length,
+        mode: executionMode,
+      });
     }
   }
   if (!parsedReply.decision) {
@@ -2404,7 +2730,7 @@ async function handleInbound(replyTo, text, sentAtMs = null, attachments = [], c
   if ((answeredModelSwitch || result.automaticFallback) && !state.availabilityRecovery) armTemporaryResetDiscovery();
   await applyDeferredRestart(replyTo, transcript);
   log('replied');
-  logTiming({ prompt: text.slice(0, 80), phone_to_bridge_s: inboundLagS, agent_start_s: agentStartS, run_s: runS, reply_sent_s: Math.round((Date.now() - startMs) / 1000), ok: true, files: files.length, change_review_files: changeReview?.count || 0 });
+  logTiming({ prompt: text.slice(0, 80), phone_to_bridge_s: inboundLagS, agent_start_s: agentStartS, run_s: runS, reply_sent_s: Math.round((Date.now() - startMs) / 1000), ok: true, files: fileDelivery.delivered, discovered_reports: fileDelivery.discoveredReports, change_review_files: changeReview?.count || 0 });
 }
 
 function enqueue(id, from, text, replyTo = from, sentAtMs = null, attachments = [], runOptions = {}) {
@@ -2635,6 +2961,24 @@ function handleScheduledPost(req, res) {
     if (kind !== 'test' && payload.force !== true && (dow === 0 || dow === 6)) {
       res.writeHead(202); return res.end(`${kind} skipped on weekend`);
     }
+    if (activeRun && queueDepth >= MAX_QUEUE_DEPTH) {
+      logEvent('scheduled_queue_rejected', { kind, max_queue_depth: MAX_QUEUE_DEPTH });
+      res.writeHead(429);
+      return res.end(`${kind} not scheduled — bridge queue is full`);
+    }
+    const today = localCalendarDay();
+    state.scheduledRunDays = state.scheduledRunDays || {};
+    if (isDuplicateScheduledRun(
+      state.scheduledRunDays[kind],
+      today,
+      { force: payload.force === true, kind },
+    )) {
+      logEvent('scheduled_duplicate_skipped', { kind, day: today });
+      res.writeHead(202);
+      return res.end(`${kind} already ran ${today} — duplicate skipped`);
+    }
+    state.scheduledRunDays[kind] = today;
+    saveState(state);
     const mode = currentMode();
     const prompt = buildScheduledPrompt(kind, mode);
     const id = `scheduled-${kind}-${new Date().toISOString()}`;
@@ -2715,6 +3059,9 @@ if (expiredImages) logEvent('inbound_image_cleanup', { removed: expiredImages })
 if (migratePendingTicketSet()) logEvent('report_tickets_migrated', { ticket_set: state.pendingTicketSet.id,
   tickets: state.pendingTicketSet.tickets.map((ticket) => ticket.number) });
 if (repairFalseCompletedBrokerExecution()) logEvent('broker_execution_false_completion_repaired', {
+  execution_id: state.pendingBrokerExecution.id,
+});
+if (reconcileFinishedBrokerExecution()) logEvent('broker_execution_reconciled', {
   execution_id: state.pendingBrokerExecution.id,
 });
 migrateLastHandoffChoice();
