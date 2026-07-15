@@ -3,6 +3,9 @@
 
 Store machine events as ISO-8601 UTC instants with ``Z``. Render human-facing
 dates and clock times in Pacific with an explicit zone label.
+
+The JavaScript side mirrors this contract in
+``chat-bot-bridge/src/runtime/clock.js``.
 """
 from __future__ import annotations
 

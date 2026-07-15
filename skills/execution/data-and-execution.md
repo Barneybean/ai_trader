@@ -181,6 +181,20 @@ Options require the account to carry the appropriate option level; check before 
 trades. To modify/cancel, use `cancel_equity_order` / `cancel_option_order` and confirm the same
 way.
 
+### Approved ticket, market moved — one bounded reconciliation
+
+An approval authorizes the ticket's side, symbol, size, and intent, not an unlimited price chase.
+Before placement, reconcile the live bid/ask and open orders:
+
+- A limit adjustment toward marketability is allowed once, by at most **0.3%** from the approved
+  limit, and old→new must be logged.
+- If the needed change is larger, worsens the risk case, changes size/side, or fails another gate,
+  send one concrete corrected numbered ticket for fresh approval. Do not ask an open-ended question
+  on every tick.
+- Never cancel or weaken a live protective stop until the replacement exit is confirmed live. If a
+  discretionary exit does not fill, keep or reinstate protection in the same session.
+- `close N`/`disregard` drops a local proposed ticket only; it never cancels a broker order.
+
 ## Action-price alerts — the levels registry (every recommendation registers its price)
 
 The connector has **no push price-alert API** (scans are pull-based screeners), so the desk
@@ -188,8 +202,8 @@ guarantees alerting with three mechanisms, strongest first:
 
 1. **Order-as-alert (configured execution account only, mode-authorized only).** A resting **GTC +
    `all_day_hours` whole-share limit** is the alert and self-executes when price arrives. It needs
-   exact-ticket approval in `manual`/`semi`; in `full`, it still needs the explicit mode opt-in and
-   every desk gate. Never infer authorization from a briefing alone.
+   exact-ticket approval in `manual`/`semi`; validate-only `full` may evaluate the ticket but cannot
+   place it. Never infer authorization from a briefing alone.
 2. **The levels registry + sweep (always).** Every recommendation that names an action price —
    buy zone, add-on-wash level, trim/stop, re-entry trigger, breakout/breakdown gate — **must be
    written to `journal/action-levels.jsonl`** (ticker, level, direction `below`/`above`, action
@@ -199,6 +213,9 @@ guarantees alerting with three mechanisms, strongest first:
    daily **lows/highs since the set date**, not just the last close — intraday touches count,
    because washes and breakouts rarely wait for the close. The user can also run it standalone
    anytime (Yahoo data, no broker login).
+   Computed forecast/exit levels can be promoted with
+   `python3 scripts/journal/capture_levels.py --help`; automatic rows keep report provenance and do
+   not overwrite an open human-curated level.
 3. **App alerts for real-time push.** For levels the user wants push-notified between desk runs,
    end the report with the explicit list to set manually in the Robinhood app ("set alerts:
    SYM 40, MP 52, …") — the desk cannot set these via the connector.

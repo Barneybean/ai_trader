@@ -15,7 +15,9 @@ The bridge runtime lives under [`chat-bot-bridge/`](../chat-bot-bridge/).
 - preserve confirm-before-order behavior in every mode;
 - fall back cleanly when the active agent is unavailable, without exposing private session data;
 - attach each newly completed report once, while keeping execution transcripts local by default;
-- make one bounded, broker-write-disabled recovery attempt when a report alone reaches its tool cap.
+- make one bounded, broker-write-disabled recovery attempt when a report alone reaches its tool cap;
+- make one small same-agent recovery attempt for an ordinary repeated-tool loop, never for broker execution;
+- let users discuss, revise, approve, or locally close pending tickets without command-template lock-in.
 
 ## Setup shape
 
@@ -25,8 +27,8 @@ The bridge runtime lives under [`chat-bot-bridge/`](../chat-bot-bridge/).
 4. Confirm that `/status`, `/agent`, `/mode`, `/new`, and `/help` respond before trusting it.
 
 The bridge stores observed model limits in a bounded, git-ignored local ledger and skips currently
-unavailable choices during automatic fallback. Scheduled report submissions are deduplicated per
-kind and local calendar day unless the scheduler explicitly requests a forced rerun. A rejected
+unavailable choices during automatic fallback. Scheduled report submissions allow intentional and
+recovery re-runs; only a near-simultaneous double-fire of the same kind is debounced. A rejected
 queue-full submission remains eligible to run later.
 
 Recorded runtime events use UTC; the phone shows report dates and model reset clocks in labeled
@@ -51,6 +53,10 @@ Pacific time (`PT`, `PST`, or `PDT`).
 | `/help` | List the supported commands. |
 
 Everything else should behave like normal desk conversation.
+
+Bridge implementation lives under `chat-bot-bridge/src/` by domain with mirrored tests under
+`chat-bot-bridge/test/`; root entrypoints remain compatible. Autonomous self-healing and `/heal`
+controls are not part of the public toolkit.
 
 ## Safety notes
 

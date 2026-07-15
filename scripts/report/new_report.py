@@ -15,12 +15,17 @@ Filename convention: report_<date>_<title>_<model>.md
 Title and model are slugified (lowercase, hyphens). Pass the run's focus as
 --title ("daily-desk-run", "nvda-deep-dive") and the AI model that ran the
 desk as --model, so the archive shows what was analyzed and by which model.
+When that canonical name already belongs to a completed or in-progress report,
+a new run gets a `-rerun-HHMMSS` (Pacific) title suffix rather than overwriting
+it, so duplicate same-day reports are allowed and clearly distinguishable.
 
 Usage:
     python3 scripts/report/new_report.py --title daily-desk-run --model claude-fable-5
     python3 scripts/report/new_report.py --market open    # stamp "market open" in the header
     python3 scripts/report/new_report.py --date 2026-07-03
-    python3 scripts/report/new_report.py --force          # overwrite if it already exists
+    python3 scripts/report/new_report.py --update reports/report_...html
+                                                    # print the existing source to revise
+    python3 scripts/report/new_report.py --force          # explicit scaffold replacement only
     python3 scripts/report/new_report.py --print-path     # just print the path, write nothing
 
 On success it prints the absolute path of the report file (last line), so a
@@ -32,6 +37,8 @@ import datetime as _dt
 import os
 import sys
 
+from report_week import week_name
+
 _SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path[:0] = [os.path.join(_SCRIPTS, d) for d in ("lib", "analysis", "ops")]
 
@@ -42,7 +49,7 @@ import clock  # canonical time; reports file under the Pacific calendar day
 # dir so `reports/` itself only ever holds the finished, committed **HTML**.
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 REPORTS_DIR = os.path.join(PROJECT_ROOT, "reports")
-BUILD_ROOT = os.path.join(REPORTS_DIR, ".build")  # git-ignored; grouped by ISO week
+BUILD_ROOT = os.path.join(REPORTS_DIR, ".build")  # git-ignored; grouped by reporting week
 
 FILENAME_FMT = "report_{date}_{title}_{model}.md"
 
@@ -302,10 +309,69 @@ def build_path(date_iso, title, model):
     # the .md source lives in the git-ignored build dir; build_report.py emits the
     # committed .html into reports/ (pass --out reports/<same-stem>.html).
     day = _dt.date.fromisoformat(date_iso)
-    iso = day.isocalendar()
-    build_dir = os.path.join(BUILD_ROOT, f"{iso.year}-W{iso.week:02d}")
+    build_dir = os.path.join(BUILD_ROOT, week_name(day))
     return os.path.join(build_dir, FILENAME_FMT.format(
         date=date_iso, title=slugify(title), model=slugify(model)))
+
+
+def html_exists_anywhere(filename):
+    """Return whether a finished report exists in the inbox or archive."""
+    if os.path.isfile(os.path.join(REPORTS_DIR, filename)):
+        return True
+    archive = os.path.join(REPORTS_DIR, "archive")
+    for _, _, names in os.walk(archive):
+        if filename in names:
+            return True
+    return False
+
+
+def artifact_exists(markdown_path):
+    """Return whether the editable source or completed HTML already exists."""
+    if os.path.exists(markdown_path):
+        return True
+    html_name = os.path.splitext(os.path.basename(markdown_path))[0] + ".html"
+    return html_exists_anywhere(html_name)
+
+
+def new_run_path(date_iso, title, model, now=None):
+    """Return a non-destructive source path for a new report run."""
+    canonical = build_path(date_iso, title, model)
+    if not artifact_exists(canonical):
+        return canonical
+
+    # Keep the model as the final filename component for report-memory parsers.
+    stamp = (now or clock.pacific_now()).strftime("%H%M%S")
+    suffix = f"{slugify(title)}-rerun-{stamp}"
+    candidate = build_path(date_iso, suffix, model)
+    ordinal = 2
+    while artifact_exists(candidate):
+        candidate = build_path(date_iso, f"{suffix}-{ordinal}", model)
+        ordinal += 1
+    return candidate
+
+
+def update_source_path(value):
+    """Resolve an explicit report artifact to its existing Markdown source."""
+    candidate = os.path.abspath(os.path.expanduser(value))
+    reports_real = os.path.realpath(REPORTS_DIR)
+    real = os.path.realpath(candidate)
+    if real != reports_real and not real.startswith(reports_real + os.sep):
+        raise ValueError("--update must point inside reports/")
+    if not os.path.isfile(real):
+        raise ValueError(f"existing report not found: {value}")
+    ext = os.path.splitext(real)[1].lower()
+    if ext == ".md":
+        return real
+    if ext != ".html":
+        raise ValueError("--update accepts an existing .html or .md report")
+    name = os.path.splitext(os.path.basename(real))[0] + ".md"
+    matches = []
+    for folder, _, names in os.walk(BUILD_ROOT):
+        if name in names:
+            matches.append(os.path.join(folder, name))
+    if len(matches) != 1:
+        raise ValueError(f"could not find one editable source for: {value}")
+    return matches[0]
 
 
 def render_scaffold(date_iso, market):
@@ -326,7 +392,10 @@ def main(argv=None):
                    help="AI model that ran the desk (e.g. claude-fable-5), slugified into the filename.")
     p.add_argument("--market", choices=["open", "closed"], default=None,
                    help="Optional market state to stamp in the header.")
-    p.add_argument("--force", action="store_true", help="Overwrite if the file already exists.")
+    p.add_argument("--force", action="store_true",
+                   help="Explicitly replace the selected scaffold; never use for a new report run.")
+    p.add_argument("--update", metavar="EXISTING_REPORT",
+                   help="Print the editable source for an existing report; does not write.")
     p.add_argument("--print-path", action="store_true", help="Only print the path; do not write.")
     args = p.parse_args(argv)
 
@@ -341,11 +410,19 @@ def main(argv=None):
     except ValueError:
         p.error(f"--date must be YYYY-MM-DD, got {args.date!r}")
 
+    if args.update:
+        try:
+            print(update_source_path(args.update))
+            return 0
+        except ValueError as exc:
+            p.error(str(exc))
+
     market = None
     if args.market:
         market = "market open" if args.market == "open" else "market closed"
 
-    path = build_path(args.date, args.title, args.model)
+    path = (build_path(args.date, args.title, args.model) if args.force
+            else new_run_path(args.date, args.title, args.model))
 
     if args.print_path:
         print(path)
@@ -353,12 +430,9 @@ def main(argv=None):
 
     os.makedirs(os.path.dirname(path), exist_ok=True)
 
-    if os.path.exists(path) and not args.force:
-        sys.stderr.write(
-            f"Report already exists (use --force to overwrite): {path}\n"
-        )
-        print(path)
-        return 0
+    if artifact_exists(path) and not args.force:
+        # Guard against another process creating the selected path concurrently.
+        path = new_run_path(args.date, args.title, args.model)
 
     with open(path, "w", encoding="utf-8") as f:
         f.write(render_scaffold(args.date, market))

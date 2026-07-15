@@ -4,6 +4,11 @@ Grouped by what the script serves. Every CLI is run from the repo root
 (`python3 scripts/<group>/<name>.py`); shared modules resolve via a small
 `sys.path` header in each entry point, so there is no package/install step.
 
+`scripts/` is the portable desk core: a capability belongs here when it can run without a phone
+provider, bridge session, or agent child process. The Node bridge may invoke these tools but must
+not duplicate their calculation, report, risk, or execution-policy logic. Bridge-specific runtime
+ownership rules live in [`../chat-bot-bridge/DEVELOPMENT.md`](../chat-bot-bridge/DEVELOPMENT.md).
+
 ## analysis/ — market & quant engines (read the tape)
 
 | Script | What it answers |
@@ -26,6 +31,7 @@ Grouped by what the script serves. Every CLI is run from the repo root
 | `track_record.py` | Log / score / reflect / recall every desk call (`journal/decisions.jsonl`) |
 | `score_insights.py` | Per-method hit rates; mark open insights to market (`journal/insights.jsonl`) |
 | `check_alerts.py` | Action-levels registry sweep: TRIGGERED / expiring levels (`journal/action-levels.jsonl`) |
+| `capture_levels.py` | Persist computed forecast/exit trigger levels into the action-level registry without overwriting curated levels |
 | `weekly_review.py` | The weekly pack: open book marked to market vs SPY, score-ready commands, archive re-read list |
 | `desk_memory.py` | Unified pre-analysis recall across reports, decisions, insights, levels, and methodology refs |
 
@@ -33,10 +39,11 @@ Grouped by what the script serves. Every CLI is run from the repo root
 
 | Script | Role |
 |---|---|
-| `new_report.py` | Scaffold the dated `.md` source in `reports/.build/` (stamps date, market state, trading mode) |
+| `new_report.py` | Scaffold a dated `.md` source without overwriting prior runs; resolve explicit `--update` targets |
 | `charts.py` | Per-name SVGs: scorecard, price/volume, chips, gauges, forecast fan |
 | `build_report.py` | Markdown → self-contained styled HTML with EN/中文 toggle (the portable deliverable) |
-| `organize_reports.py` | Lifecycle helper invoked by scaffold/build: current week at root, older reports archived by ISO week |
+| `report_week.py` | Shared Sunday–Saturday reporting-week calendar |
+| `organize_reports.py` | Lifecycle helper: current week at root, older reports archived, misplaced artifacts repaired |
 
 ## ops/ — desk state, safety gates & install (run the shop)
 

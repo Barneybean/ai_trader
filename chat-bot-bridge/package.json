@@ -7,7 +7,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node --test *.test.js",
+    "test": "node --test test/*/*.test.js",
     "service:install": "./service-control.sh install",
     "service:uninstall": "./service-control.sh uninstall",
     "service:restart": "./service-control.sh restart",

@@ -104,3 +104,8 @@ required checks have passed, the owner explicitly directs the merge, and the rea
 the MR/PR. The override still merges through the MR/PR; it never authorizes a direct push, a failing
 check, or an automated bypass. Other automation and routine actors receive no bypass permission.
 File-based CI cannot prevent a privileged host-level action, so its audit trail is mandatory.
+
+The action-level capture contract is covered by
+`scripts/journal/test_capture_levels.py`. Report naming and the shared Sunday-start calendar are
+covered by `scripts/report/test_new_report.py` and `scripts/report/test_report_week.py`; the latter
+also exercises `report_week.py` through artifact organization and default build output.

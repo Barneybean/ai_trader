@@ -8,7 +8,7 @@ import fs from 'fs';
 import http from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { SCHEDULE_KINDS } from './scheduled-task.js';
+import { SCHEDULE_KINDS } from './src/runtime/scheduled-task.js';
 
 const BRIDGE_DIR = path.dirname(fileURLToPath(import.meta.url));
 const TOKEN_FILE = path.join(BRIDGE_DIR, 'logs', 'scheduler-token');

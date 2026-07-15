@@ -27,6 +27,10 @@ can also auto-detect from the user-configured provider priority order:
 
 **Zero npm dependencies**: the server uses only Node built-ins (`http`, `crypto`, `fetch`).
 
+Implementation is organized by responsibility under `src/` (`agents`, `broker`, `control`,
+`delivery`, `reports`, and `runtime`) with mirrored tests under `test/`. Root `server.js` and
+`scheduled-run.js` remain stable compatibility entrypoints. See [`DEVELOPMENT.md`](DEVELOPMENT.md).
+
 Adding another app now requires one adapter with `send`, optional `sendFile` and `typing`,
 `start`, and its text limit. Desk commands, serialization, sessions, allowlisting, status
 messages, and file security remain provider-independent.
@@ -176,15 +180,19 @@ If a report alone reaches its tool limit before a complete HTML artifact exists,
 one fresh-session, report-only completion pass with a smaller bounded budget (24 calls by default).
 The pass reuses existing work, keeps repeated-call protection enabled, and cannot write broker
 orders. A complete report recovered from a failed run is still attached; incomplete scaffolds are
-not. Execution transcripts remain local unless `PHONE_EXECUTION_LOG` explicitly enables delivery.
+not. An ordinary non-report run that repeats the same tool call may retry once with the same agent
+and a small loop-breaking budget; broker-execution runs never take that retry. Execution transcripts
+remain local unless `PHONE_EXECUTION_LOG` explicitly enables delivery.
 
-Scheduled pre-market, optional mid-market, and post-market requests are idempotent by local calendar
-day. A duplicate is skipped unless the scheduler explicitly sets `force: true`; a queue-full rejection
-does not consume that day's run slot. Invoke the optional intraday update with
+Scheduled pre-market, optional mid-market, and post-market requests allow intentional and recovery
+re-runs, which receive collision-safe report names. Only a near-simultaneous double-fire of the same
+kind is debounced; `force: true` and plumbing tests bypass the debounce. Invoke the optional update with
 `node scheduled-run.js midmarket`; it checks the morning plan rather than re-underwriting the day.
 Each accepted report run preserves prior artifacts rather than overwriting them.
 When semi-auto output contains actionable tickets, the phone receives a compact numbered follow-up
-with the exact approval wording.
+with the exact approval wording. Users may discuss a pending ticket naturally, revise it into a new
+numbered proposal, or use `close N`/`close all` to remove it from the local queue without touching a
+broker order. A reconciled report that does not re-propose an older ticket retires it automatically.
 
 ## Troubleshooting
 

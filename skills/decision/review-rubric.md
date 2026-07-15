@@ -74,7 +74,11 @@ A gate failure goes in the internal log with the reason, and appears (one line) 
 
 ---
 
-## Position sizing
+## Position sizing — canonical risk limits (single source)
+
+> These figures—per-idea risk, concentration, cash policy, and sleeve budget—are the canonical
+> source. Other skills reference this section rather than restating the figures, so the caps cannot
+> drift across files. Change a limit here once.
 
 - **Per-idea risk cap:** ≤ **2%** of account on one idea (entry→stop × shares ≤ 2%). Governs how much you can *lose*.
 - **Per-name concentration cap (mentor rule):** no position exceeds **25% of portfolio** — a hard ceiling, never a target. Size by **conviction tier**: ~7–8% high-conviction large-cap, ~4–5% growth/semis, ~3–4% dividend/defensive, ~1–2% speculative. Both caps apply; the binding one wins. See `skills/playbook/mentor-method.md`.

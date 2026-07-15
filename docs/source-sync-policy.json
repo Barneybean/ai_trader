@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "policy_id": "ai-trader-toolbox-public-boundary",
-  "policy_version": "1.2.0",
+  "policy_version": "1.3.0",
   "purpose": "Classify source-to-public differences without copying files or private state.",
   "canonical_paths": [
     {
@@ -43,6 +43,14 @@
         "**/state.json",
         "**/*.local.txt",
         "**/__pycache__/**",
+        "runtime/self-healing",
+        "runtime/self-healing/**",
+        "chat-bot-bridge/**/self-heal*.js",
+        "chat-bot-bridge/**/self-heal*.test.js",
+        "chat-bot-bridge/**/fault-adjudication*.js",
+        "chat-bot-bridge/**/fault-adjudication*.test.js",
+        "docs/plans/self-heal.md",
+        "docs/adr/*self-heal*.md",
         "journal/*.json",
         "journal/*.jsonl",
         "journal/reflections.md",
@@ -108,6 +116,16 @@
       ]
     }
   ],
+  "private_only_fragments": [
+    {
+      "paths": [
+        "chat-bot-bridge/src/app/bridge-server.js",
+        "chat-bot-bridge/src/control/remote-control.js"
+      ],
+      "markers": ["selfHeal", "SelfHeal", "/heal", "faultAdjudication", "FaultAdjudication"],
+      "action": "Remove private repair imports, state, queue/runner hooks, commands, and help text before any public port; never copy these files wholesale."
+    }
+  ],
   "default_class": "manual_review",
   "required_paths": [
     "README.md",
@@ -127,7 +145,7 @@
     "skills/decision/trading-modes.md": [
       "missing or unreadable: `semi`"
     ],
-    "chat-bot-bridge/chat-rules.js": [
+    "chat-bot-bridge/src/control/chat-rules.js": [
       "return m in MODES ? m : 'semi'"
     ],
     "docs/open-source-boundary.md": [

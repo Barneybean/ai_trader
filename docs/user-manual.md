@@ -60,7 +60,9 @@ The public docs expose the same command surface as the phone bridge.
 ## Reports and recovery
 
 The phone bridge automatically sends each new, complete HTML report once; the agent does not need
-to remember a `FILE:` marker. A rerun preserves the earlier report and creates a distinct artifact.
+to remember a `FILE:` marker. A rerun preserves the earlier report and creates a distinct
+`-rerun-HHMMSS` artifact. Use `new_report.py --update <finished-report>` only when intentionally
+revising an existing report.
 Only an explicit request to revise a named report updates an existing one; the desk asks when the
 target is ambiguous.
 
@@ -68,7 +70,15 @@ If report generation alone reaches its tool budget, the bridge can make one smal
 completion attempt. That attempt cannot place, cancel, or replace orders, and incomplete report
 scaffolds are never delivered. Execution transcripts stay in local ignored logs unless you opt in to
 phone delivery. In semi mode, saved report tickets are followed by a compact numbered action list and
-the exact `approve N` / `approve all` instruction.
+the exact `approve N` / `approve all` instruction. You can also discuss a pending ticket naturally,
+revise it into a new numbered proposal, or use `close N` / `close all` to remove it from the local
+queue without touching a broker order. A new reconciled report automatically retires an older ticket
+that it does not re-propose.
+
+Intentional or recovery scheduled re-runs are allowed and receive distinct artifact names. Only a
+near-simultaneous double-fire of the same schedule kind is debounced. An ordinary non-report run that
+loops on an identical tool call may receive one small same-agent recovery pass; broker-execution runs
+never use that retry.
 
 ---
 

@@ -43,6 +43,8 @@ import re
 import sys
 from contextlib import nullcontext
 
+from report_week import week_name
+
 _SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path[:0] = [os.path.join(_SCRIPTS, d) for d in ("lib", "analysis", "ops")]
 import indicators as ind
@@ -751,8 +753,7 @@ def write_charts(bars, symbol, out_dir, price_override=None, float_shares=None,
     # exactly as supplied.
     if date and os.path.realpath(out_dir) == os.path.realpath(CHARTS_ROOT):
         day = dt.date.fromisoformat(date)
-        iso = day.isocalendar()
-        out_dir = os.path.join(out_dir, f"{iso.year}-W{iso.week:02d}")
+        out_dir = os.path.join(out_dir, week_name(day))
     os.makedirs(out_dir, exist_ok=True)
     tag = symbol.upper()
     if not re.fullmatch(r"[A-Z0-9][A-Z0-9.^=-]{0,19}", tag):
@@ -848,7 +849,7 @@ def main():
     p.add_argument("--float", type=float, default=None, dest="float_shares",
                    help="circulating float (shares) for the exact chip distribution")
     p.add_argument("--out", default=CHARTS_ROOT,
-                   help="output directory (canonical root auto-groups by ISO week)")
+                   help="output directory (canonical root auto-groups by Sunday-start week)")
     p.add_argument("--date", default=None, help="date tag for filenames (YYYY-MM-DD)")
     p.add_argument("--only", default=None,
                    help="comma list subset of: scorecard,price,forecast,chips,gauges")

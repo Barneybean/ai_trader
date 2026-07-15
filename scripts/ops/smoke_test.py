@@ -170,9 +170,24 @@ def smoke_commands(files: list[str]) -> tuple[list[tuple[str, list[str], Path]],
             [sys.executable, "scripts/journal/track_record.py", "--help"],
             ROOT,
         ))
+        commands.append((
+            "capture-levels tests",
+            [sys.executable, "scripts/journal/test_capture_levels.py"],
+            ROOT,
+        ))
         review_notes.append("Check the recall and journal flows for regressions.")
 
     if touches_report:
+        commands.append((
+            "report lifecycle tests",
+            [sys.executable, "scripts/report/test_new_report.py"],
+            ROOT,
+        ))
+        commands.append((
+            "report week tests",
+            [sys.executable, "scripts/report/test_report_week.py"],
+            ROOT,
+        ))
         commands.append((
             "report scaffold help",
             [sys.executable, "scripts/report/new_report.py", "--help"],
@@ -261,8 +276,8 @@ def smoke_commands(files: list[str]) -> tuple[list[tuple[str, list[str], Path]],
                 "--input-type=module",
                 "-e",
                 (
-                    "import { chatRules, MODES, currentMode } from './chat-bot-bridge/chat-rules.js';"
-                    "import { claudeRateLimitBlocked, codexAvailabilityError, createRunCircuitBreaker, shouldFallbackForBroker } from './chat-bot-bridge/agent-routing.js';"
+                    "import { chatRules, MODES, currentMode } from './chat-bot-bridge/src/control/chat-rules.js';"
+                    "import { claudeRateLimitBlocked, codexAvailabilityError, createRunCircuitBreaker, shouldFallbackForBroker } from './chat-bot-bridge/src/agents/agent-routing.js';"
                     "const text = chatRules('semi');"
                     "const normal = {type:'item.completed',item:{type:'command_execution',status:'completed',exit_code:0,command:'rg not found'}};"
                     "const limited = {type:'error',message:'rate limit reached; try again later'};"
@@ -282,24 +297,7 @@ def smoke_commands(files: list[str]) -> tuple[list[tuple[str, list[str], Path]],
         ))
         commands.append((
             "bridge behavior tests",
-            [
-                "node", "--test",
-                "chat-bot-bridge/agent-registry.test.js",
-                "chat-bot-bridge/agent-routing.test.js",
-                "chat-bot-bridge/availability-recovery.test.js",
-                "chat-bot-bridge/chat-rules.test.js",
-                "chat-bot-bridge/inbound-media.test.js",
-                "chat-bot-bridge/model-availability.test.js",
-                "chat-bot-bridge/model-routing.test.js",
-                "chat-bot-bridge/phone-output.test.js",
-                "chat-bot-bridge/report-artifact-recovery.test.js",
-                "chat-bot-bridge/report-delivery.test.js",
-                "chat-bot-bridge/report-recovery.test.js",
-                "chat-bot-bridge/remote-control.test.js",
-                "chat-bot-bridge/run-telemetry.test.js",
-                "chat-bot-bridge/scheduled-task.test.js",
-                "chat-bot-bridge/ticket-approval.test.js",
-            ],
+            ["npm", "--prefix", "chat-bot-bridge", "test"],
             ROOT,
         ))
         review_notes.append("Manually verify a phone flow if the bridge message path changed.")

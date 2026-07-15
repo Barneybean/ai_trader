@@ -49,3 +49,29 @@ Backtesting exists because a rule that looks great in hindsight usually falls ap
 - **Tax/cost** — the turnover budget (fewer taxable events), the bias toward Core winners into long-term treatment, and netting costs into every RR — see `skills/decision/tax-aware.md`.
 
 Reference which lever a recommendation pulls, so the user sees the trade-off.
+
+---
+
+## 4. Mandatory participation for top-decile setups
+
+A call is a **must-buy** only when all four conditions hold:
+
+1. Conviction is **High** and the rubric score is **≥80/100**.
+2. It clears **every invariant**: RR ≥2 at entry, defined invalidation plus a live protective
+   stop, and size within the canonical caps in `review-rubric.md`.
+3. It survived the bear case (Research Manager = Buy/Strong Buy) on a real variant rather than
+   broad-market beta.
+4. A valid entry exists at or near the current price—not a breakout several levels away.
+
+When all four hold, a starter proposal is mandatory under the active confirmation mode; the desk
+does not silently choose zero participation. Start with roughly one-third to one-half of planned
+size, re-justify lower-conviction resting bids if capital is constrained, and add only on the
+pre-underwritten proof.
+
+If conditions 1–3 hold but condition 4 fails because price is mid-range or RR is poor, arm a
+concrete entry trigger in `journal/action-levels.jsonl` rather than leaving a passive watch. “Wait
+for confirmation” justifies a zero-fill only when a named invariant or condition 4 blocks it.
+
+Journal every top-decile call as must-buy **yes** with the approved fill, or **no** with the
+blocking invariant/entry condition named, so the weekly retrospective can score whether the rule
+participates when it should.

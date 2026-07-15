@@ -16,7 +16,7 @@ pipe tables, blockquotes, rules, bold/italic/code, links, images). It is tuned
 for the desk report scaffold in SKILL.md, not arbitrary markdown.
 
 Usage:
-    python3 scripts/report/build_report.py reports/report_2026-07-03_daily-desk-run_claude-fable-5.md
+    python3 scripts/report/build_report.py reports/.build/2026-W28/report_2026-07-03_daily-desk-run_claude-fable-5.md
     python3 scripts/report/build_report.py <in.md> --out <out.html>
     python3 scripts/report/build_report.py <in.md> --charts-dir reports/assets/charts/YYYY-Www
 """
@@ -28,8 +28,12 @@ import re
 import sys
 from urllib.parse import urlsplit
 
+from report_week import week_name
+
 _SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path[:0] = [os.path.join(_SCRIPTS, d) for d in ("lib", "analysis", "ops")]
+PROJECT_ROOT = os.path.dirname(_SCRIPTS)
+REPORTS_DIR = os.path.join(PROJECT_ROOT, "reports")
 
 
 
@@ -799,20 +803,23 @@ def _render_body(md, base_dir, charts_dir, glossary=True):
     return _inject_glossary(body) if glossary else body
 
 
+def default_output_path(md_path):
+    """Return the canonical finished-HTML path for a report Markdown source."""
+    name = os.path.splitext(os.path.basename(md_path))[0] + ".html"
+    return os.path.join(REPORTS_DIR, name)
+
+
 def build(md_path, out_path=None, charts_dir=None):
     with open(md_path, encoding="utf-8") as f:
         md = f.read()
     base_dir = os.path.dirname(os.path.abspath(md_path))
-    root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     if charts_dir is None:
-        # Chart sources are grouped by the report's ISO week. The HTML embeds
+        # Chart sources are grouped by the report's Sunday-start week. The HTML embeds
         # them, so their physical location is an implementation detail.
         m = re.search(r"report_(\d{4}-\d{2}-\d{2})_", os.path.basename(md_path))
         if m:
             day = __import__("datetime").date.fromisoformat(m.group(1))
-            iso = day.isocalendar()
-            charts_dir = os.path.join(root, "reports", "assets", "charts",
-                                      f"{iso.year}-W{iso.week:02d}")
+            charts_dir = os.path.join(REPORTS_DIR, "assets", "charts", week_name(day))
         else:
             charts_dir = os.path.join(base_dir, "charts")
     en_md, zh_md = _split_langs(md)
@@ -825,19 +832,20 @@ def build(md_path, out_path=None, charts_dir=None):
     else:
         page = wrap_page(title, _render_body(en_md, base_dir, charts_dir), bilingual=False)
     if out_path is None:
-        out_path = os.path.join(root, "reports",
-                                os.path.splitext(os.path.basename(md_path))[0] + ".html")
+        # Markdown is build state under reports/.build/. Finished HTML always
+        # belongs in the reports inbox unless explicitly overridden.
+        out_path = default_output_path(md_path)
     os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(page)
-    # A rebuilt historical report belongs in its ISO-week archive immediately;
+    # A rebuilt historical report belongs in its reporting-week archive immediately;
     # current-week reports remain directly in reports/.
     from organize_reports import organize_reports, organize_support_files
     moved = organize_reports()
     organize_support_files()
     final_path = moved.get(os.path.abspath(out_path), out_path)
     # Machine-readable memory sidecar; HTML remains the human artifact.
-    journal_dir = os.path.join(root, "scripts", "journal")
+    journal_dir = os.path.join(PROJECT_ROOT, "scripts", "journal")
     if journal_dir not in sys.path: sys.path.insert(0, journal_dir)
     from desk_memory import index_report
     index_report(md_path, final_path, en_md)
@@ -847,7 +855,8 @@ def build(md_path, out_path=None, charts_dir=None):
 def main():
     p = argparse.ArgumentParser(description="Render a markdown desk report to styled, self-contained HTML.")
     p.add_argument("markdown", help="the report .md file")
-    p.add_argument("--out", default=None, help="output .html path (default: reports/<same-name>.html)")
+    p.add_argument("--out", default=None,
+                   help="output .html path (default: reports/<same-name>.html)")
     p.add_argument("--charts-dir", default=None,
                    help="chart source directory (default: reports/assets/charts/<report-week>)")
     args = p.parse_args()

@@ -31,6 +31,15 @@ explicit approval in a later message — `approve 1`, `yes to 2`, `approve all` 
 exactly the tickets named, nothing more. An ad-hoc order the user requests directly still
 gets one confirm round-trip.
 
+**Closing a ticket.** `close N`, `close all`, or unambiguous dismissal wording drops a queued
+proposal only. It places, changes, and cancels nothing at the broker and never touches a live
+protective order. A reconciled report that does not re-propose an older pending ticket retires it.
+
+**Price reconciliation.** Approval fixes the ticket's side, symbol, size, and intent. If the market
+moves before placement, the desk may make one logged limit adjustment toward marketability of at
+most 0.3%. Any larger or risk-worsening change becomes one corrected numbered ticket and requires
+fresh approval. A protective stop remains live until its replacement exit is confirmed.
+
 ### `manual` — advise-only (the kill switch)
 
 Nothing executes without the full per-order confirm flow of
@@ -47,6 +56,7 @@ onward.
 - The ticket discipline is mode-independent: whoever pulls the trigger, every order is fully
   specified, previewed via the broker's review call, placed as specified, logged to the track
   record, and reported with fill status.
+- A queued-ticket dismissal is local state only; never interpret it as a broker cancel.
 - If broker tools are unavailable, say so and mark tickets `execution pending broker auth` —
   never pretend an order was placed.
 - Every report states the active mode in its orders section, so the reader knows whether tickets
@@ -66,4 +76,4 @@ the new mode authorizes before writing it—especially that `full` does not auth
 
 Cross-links: execution mechanics in `skills/execution/data-and-execution.md` · sizing and
 review bar in `skills/decision/review-rubric.md` + `sufficiency-gate.md` · channel phrasing
-injected by `chat-bot-bridge/chat-rules.js` (a consumer of this protocol, not the source).
+injected by `chat-bot-bridge/src/control/chat-rules.js` (a consumer of this protocol, not the source).

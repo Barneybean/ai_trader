@@ -6,7 +6,7 @@ Finished, self-contained desk reports with a small and predictable lifecycle.
 
 ```text
 reports/
-├── report_YYYY-MM-DD_<title>_<model>.html  # current ISO week only
+├── report_YYYY-MM-DD_<title>_<model>.html  # current Sunday–Saturday week only
 ├── archive/
 │   └── YYYY-Www/                          # prior-week HTML deliverables
 ├── assets/
@@ -19,9 +19,12 @@ reports/
     └── YYYY-Www/                          # markdown sources; git-ignored
 ```
 
-The root is intentionally an inbox for the current week. `organize_reports.py`
-moves older HTML and partitions support files by the ISO week encoded in their
-filenames. It runs automatically from `new_report.py` and `build_report.py`.
+The root is intentionally an inbox for the current reporting week. Reporting
+weeks run **Sunday through Saturday**, so a Sunday report stays beside the
+following Monday's report. `organize_reports.py` moves other HTML to the archive
+and partitions support files by the date encoded in their filenames. It also
+recovers misplaced finished HTML. It runs automatically from `new_report.py`
+and `build_report.py`.
 
 ## Artifact policy
 
@@ -30,8 +33,8 @@ filenames. It runs automatically from `new_report.py` and `build_report.py`.
 - **Chart SVGs are sources.** They are grouped by week under `assets/charts/`.
 - **Market data is cache.** It is reproducible, local, and never committed.
 - **Markdown is build state.** It stays under `.build/` and is never committed.
-- **Archive paths are immutable by date.** Rebuilding an old report atomically
-  refreshes the copy in its original ISO-week folder.
+- **Archive paths are deterministic by date.** Rebuilding an old report
+  atomically refreshes the copy in its Sunday-start reporting-week folder.
 
 ## Naming
 
@@ -50,14 +53,17 @@ python3 scripts/report/new_report.py --market open --date 2026-07-11 \
 python3 scripts/report/charts.py <historicals.json> --symbol META \
   --price <live> --float <float> --date 2026-07-11
 
-# Build current-week HTML into reports/; charts resolve by report week
+# Build current-week HTML into reports/ by default; charts resolve by report week
 python3 scripts/report/build_report.py \
-  reports/.build/2026-W28/report_2026-07-11_daily-desk-run_claude-fable-5.md \
-  --out reports/report_2026-07-11_daily-desk-run_claude-fable-5.html
+  reports/.build/2026-W28/report_2026-07-11_daily-desk-run_claude-fable-5.md
 
 # Optional explicit maintenance/audit
 python3 scripts/report/organize_reports.py
 ```
+
+New and repeated runs omit `--force`; a collision receives a
+`-rerun-HHMMSS` suffix. To intentionally revise an existing artifact, run
+`new_report.py --update <report.html>` and edit the returned source path.
 
 Keep personal reports local or publish them only to a private fork. The public toolkit ignores
 current reports, archives, chart assets, caches, and build intermediates; only the maintained,

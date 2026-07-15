@@ -52,3 +52,8 @@ Routine bug fixes, copy edits, and new reference content don't need one.
 - [ADR-0015](0015-predictive-rules-are-expiring-hypotheses.md) — Predictive rules are expiring hypotheses — Accepted
 - [ADR-0016](0016-phone-bridge-recovery-and-delivery-are-deterministic.md) — Phone bridge recovery and delivery are deterministic — Accepted
 - [ADR-0031](0031-canonical-time-utc-record-pacific-display.md) — Canonical time: record in UTC, display in Pacific, always labeled — Accepted
+- [ADR-0032](0032-computed-trigger-levels-persist-in-the-journal.md) — Computed trigger levels persist in the journal — Accepted
+- [ADR-0033](0033-ticket-lifecycle-is-closeable-non-carrying-and-reconciled.md) — Ticket lifecycle is closeable, non-carrying, and reconciled — Accepted
+- [ADR-0034](0034-pending-ticket-talk-is-a-natural-conversation.md) — Pending-ticket talk is a natural conversation — Accepted
+- [ADR-0035](0035-looped-non-report-runs-get-one-bounded-recovery.md) — Looped non-report runs get one bounded recovery — Accepted
+- [ADR-0036](0036-bridge-runtime-boundary-and-domain-layout.md) — Bridge runtime boundary and domain layout — Accepted

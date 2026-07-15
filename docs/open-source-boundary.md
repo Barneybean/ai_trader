@@ -175,23 +175,53 @@ issue only when it is reversible and time-sensitive; permanent code still follow
 
 The public update should include the reusable multi-agent routing capability:
 
-- `auto` routing with a configurable priority list rather than a hardcoded vendor preference;
-- explicit `/agent auto|codex|claude` selection, plus an interface that can register future agents;
+- `auto` routing with configurable priority rather than hardcoded vendor preference;
+- a short-lived numbered `/agent` picker where each visible agent/model pair can become the default;
+  an agent-focused picker lists a bounded passive catalog without launching paid probe turns or
+  interrupting the active run;
+- availability observations and provider reset times may drive bounded no-session-persistence
+  recovery probes, which a manual default change cancels;
+- a user-selected continuation model remains the temporary ordinary-request route while the default
+  is quarantined; broker capability routing remains exempt;
 - fallback only for rate limits, quota/authentication failures, missing binaries, or other defined
-  availability failures—not because one agent produced an investment answer another agent dislikes;
+  availability failures—not because one agent disagrees with another's investment answer;
 - separate session IDs per agent, serialized execution, and a bounded recent-history handoff when
   switching so continuity is preserved without merging/corrupting contexts;
 - `/new` clearing all agent sessions, and `/status` showing preference, last agent, priority, and
   session health without exposing sensitive identifiers;
 - deterministic receipt, agent-start, fallback/trouble, elapsed-time, and completion messages so
   phone latency is observable;
+- a sanitized live run card plus queue-safe `/status`, `/steer`, and `/stop` controls; interruption
+  preserves resumable session state and completed files without exposing raw output;
+- provider-neutral inbound images with owner checks, HTTPS download, MIME/signature/size validation,
+  ignored private storage, retention cleanup, and handoff continuity;
+- per-interaction source snapshots and privacy-redacted mobile change reviews that exclude existing
+  dirty worktree changes and runtime/private/generated files;
+- scheduled decision-grade reports that prove broker capability through an observed live read-only
+  preflight before delivery;
 - configurable binaries, timeouts, and agent priority through sanitized environment examples;
-- tests for rate-limit detection, fallback eligibility, pinned-agent behavior, session separation,
+- tests for availability detection, model-choice eligibility, default behavior, session separation,
   command handling, and prevention of concurrent trading sessions.
 
 The public default may prefer whichever supported agent is most available, but the order must be
 user-configurable. Agent switching changes the runtime, never the desk's research, risk, privacy,
 or execution rules.
+
+### Trading Desk-only self-healing
+
+Autonomous self-healing is private Trading Desk infrastructure and is `never_import`, not a
+sanitizable public capability. Do not port or recreate `runtime/self-healing/**`, its plans/ADRs,
+agent repair prompts, worktree/merge adapters, review-resume state, enablement commands, tests, or
+examples in AI Trader Toolbox. The public bridge may retain ordinary reliability observability,
+fault logging, bounded retries, model fallback, and human-directed debugging; it must not diagnose,
+edit, commit, push, merge, or restart its own code.
+
+This boundary applies even when the private implementation looks generic or contains no personal
+data. Publishing self-healing requires a separate explicit boundary-policy decision; an ordinary
+source-sync request is insufficient. During a public sync,
+`chat-bot-bridge/src/app/bridge-server.js` and `src/control/remote-control.js` require fragment-level
+review: remove every self-healing/fault-adjudication import, state hook, queue/runner hook, and every
+`/heal` command/help surface. Copying either private file wholesale is prohibited.
 
 ## Do not include in open source
 
@@ -241,12 +271,10 @@ as historical—not live signals or endorsements.
 
 Publish interfaces and sanitized templates, never live configuration. Broker adapters require
 capability detection, preview, confirmation, reconciliation, audit logging, kill switch behavior,
-and sandbox integration tests. The bridge ships as **side-effect-free capability modules**
-(agent-registry, agent-routing, model-routing, model-availability, availability-recovery,
-report-artifact-recovery, report-delivery, report-recovery, ticket-approval, remote-control,
-change-review, phone-output, run-telemetry, inbound-media, broker-preflight, scheduled-task), each
-with a Node `--test` suite and gated by the smoke suite (ADR-0010); `server.js` is the transport
-shell. Phone run controls (`/run`, `/stop`, `/steer`, `/decide`) and mobile code-change reviews are
+and sandbox integration tests. Bridge modules are grouped under
+`chat-bot-bridge/src/{agents,broker,control,delivery,reports,runtime}/` with mirrored Node tests
+under `chat-bot-bridge/test/`; root `server.js` is the compatibility transport entrypoint and
+`src/app/bridge-server.js` is the composition root. Phone run controls (`/run`, `/stop`, `/steer`, `/decide`) and mobile code-change reviews are
 public capabilities, but every launchd label/path stays a `YOUR_NAME`/`com.example` template and all
 account/execution defaults stay public-safe (`semi` with explicit ticket approval, `manual` as the
 kill switch, execution-scope-only, and no money movement). Availability observations are local,

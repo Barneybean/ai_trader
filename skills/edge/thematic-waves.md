@@ -17,6 +17,12 @@ Apply this lens **once per run** (like the Macro lens) to locate the wave front 
 
 ## The AI buildout wave-map (rotation sequence)
 
+> **Regime-tagged hypothesis, not doctrine.** This layer sequence and its named proxies are
+> calibrated to the 2023–2026 AI-capex cycle—a revisable hypothesis under `SKILL.md` Operating
+> discipline, not an invariant. Score whether the rotation paid in the weekly retrospective, and
+> reopen the map on a regime change. The diffusion mental model above is durable; this specific
+> map expires.
+
 Roughly ordered by when each layer becomes the binding constraint. Track **where the wave front is now, and what inflects next.** Each layer: bottleneck, public names/proxies, **inflection tell** (the dated signal its wave is turning).
 
 1. **Accelerated compute — GPU.** First bottleneck. (NVDA; AMD.) Tell: allocation, lead times, hyperscaler capex guides.
