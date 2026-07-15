@@ -23,11 +23,14 @@ export function isBrokerWriteTool(tool) {
   return /(?:broker|robinhood)/i.test(name) && BROKER_WRITE_TOOL_RE.test(name);
 }
 
-export function reportRecoverySafetyInstructions() {
+export function reportRecoverySafetyInstructions({ brokerSnapshotCaptured = false } = {}) {
+  const preflight = brokerSnapshotCaptured
+    ? 'The original scheduled pass already completed its read-only broker snapshot. Do not call any broker tool again in recovery; finish from preserved local work.'
+    : 'A scheduled recovery may perform its required read-only broker capability preflight once, then must finish from preserved local work.';
   return [
     'REPORT RECOVERY SAFETY GATE — this is an artifact-completion pass, not an execution pass.',
     'Override any autonomous execution instruction for this pass. Do not place, cancel, replace, submit, approve, or execute a broker order. Do not use broker order-writing tools.',
-    'A scheduled recovery may perform its required read-only broker capability preflight, then must finish from preserved local work.',
+    preflight,
   ].join('\n');
 }
 
@@ -79,17 +82,20 @@ export function buildReportRecoveryPrompt({
   originalPrompt,
   maxToolCalls = 24,
   scheduledKind = null,
+  brokerSnapshotCaptured = false,
 } = {}) {
   const budget = Math.max(1, Math.min(48, Number(maxToolCalls) || 24));
   const scheduled = String(scheduledKind || '').trim().toLowerCase();
-  const preflight = scheduled && scheduled !== 'test'
+  const preflight = scheduled && scheduled !== 'test' && !brokerSnapshotCaptured
     ? 'Perform the scheduled run\'s required read-only broker capability preflight first. Do not use any broker write tool.'
-    : 'Do not use broker tools in this recovery pass.';
+    : brokerSnapshotCaptured
+      ? 'The first pass already completed the read-only broker snapshot. Do not call any broker tool again; reuse saved run material and state any unavoidable data limitation.'
+      : 'Do not use broker tools in this recovery pass.';
   return [
-    reportRecoverySafetyInstructions(),
+    reportRecoverySafetyInstructions({ brokerSnapshotCaptured }),
     'REPORT RECOVERY MODE — one bounded completion pass.',
     'The prior report attempt reached its tool-call safety cap. Start in a fresh session; do not resume or repeat the broad research pipeline.',
-    `Use at most ${budget} tool calls. Inspect current-run drafts, caches, journal context, and generated assets first. Reuse completed work; make only targeted checks for decision-critical gaps.`,
+    `Use at most ${budget} tool calls. Inspect current-run drafts, caches, journal context, and generated assets first. Reuse saved market data and any report draft before doing anything else. Do not repeat broker reads or restart broad web research; make at most one targeted check for a decision-critical gap.`,
     preflight,
     'Build the requested bilingual HTML report with the repository report tools. Preserve existing reports. If supporting data is incomplete, state the limitation instead of restarting research.',
     'Verify that the completed HTML artifact exists, then reply with a concise summary. Do not start another recovery.',

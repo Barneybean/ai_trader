@@ -4,6 +4,8 @@ import {
   availabilityFailure,
   brokerRequestKind,
   codexAvailabilityError,
+  codexToolFingerprint,
+  createRunCircuitBreaker,
   createManualAgentChoice,
   formatManualAgentChoiceForPhone,
   implicitManualAgentChoice,
@@ -113,4 +115,36 @@ test('uses recent ticket context for a bare confirmation', () => {
 test('does not mistake research questions for execution', () => {
   assert.equal(brokerRequestKind('Should I buy NKE after earnings?'), null);
   assert.equal(brokerRequestKind('Explain the order execution methodology'), null);
+});
+
+test('Codex fingerprints observable tool inputs without merging opaque searches', () => {
+  const opaqueSearch = { type: 'web_search', id: 'item-1' };
+  assert.equal(codexToolFingerprint(opaqueSearch), null);
+  assert.equal(codexToolFingerprint({ type: 'web_search', arguments: {} }), null);
+  assert.equal(
+    codexToolFingerprint({ type: 'web_search', query: 'EXAMPLE earnings news' }),
+    'web_search:"EXAMPLE earnings news"',
+  );
+  assert.equal(
+    codexToolFingerprint({ type: 'web_search', arguments: { q: 'EXAMPLE earnings news' } }),
+    'web_search:"EXAMPLE earnings news"',
+  );
+  assert.equal(
+    codexToolFingerprint({
+      type: 'mcp_tool_call', server: 'broker', tool: 'get_orders', arguments: { a: 1, b: 2 },
+    }),
+    codexToolFingerprint({
+      type: 'mcp_tool_call', server: 'broker', tool: 'get_orders', arguments: { b: 2, a: 1 },
+    }),
+  );
+
+  const guard = createRunCircuitBreaker({ maxToolCalls: 10, maxIdenticalToolCalls: 2 });
+  for (let i = 0; i < 6; i++) {
+    assert.equal(guard.observeTool(codexToolFingerprint(opaqueSearch)), null);
+  }
+  assert.equal(guard.snapshot().toolCalls, 6);
+  const repeated = codexToolFingerprint({ type: 'web_search', query: 'same query' });
+  assert.equal(guard.observeTool(repeated), null);
+  assert.equal(guard.observeTool(repeated), null);
+  assert.match(guard.observeTool(repeated), /identical tool call repeated/);
 });

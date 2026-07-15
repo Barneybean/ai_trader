@@ -180,9 +180,15 @@ If a report alone reaches its tool limit before a complete HTML artifact exists,
 one fresh-session, report-only completion pass with a smaller bounded budget (24 calls by default).
 The pass reuses existing work, keeps repeated-call protection enabled, and cannot write broker
 orders. A complete report recovered from a failed run is still attached; incomplete scaffolds are
-not. An ordinary non-report run that repeats the same tool call may retry once with the same agent
-and a small loop-breaking budget; broker-execution runs never take that retry. Execution transcripts
-remain local unless `PHONE_EXECUTION_LOG` explicitly enables delivery.
+not. Scheduled reports build one read-only broker snapshot rather than polling the same endpoints;
+a recovery pass reuses an already completed snapshot instead of fetching it again. An ordinary
+non-report run that repeats the same tool call may retry once with the same agent and a small
+loop-breaking budget; broker-execution runs never take that retry. Execution transcripts remain
+local unless `PHONE_EXECUTION_LOG` explicitly enables delivery.
+
+Repeated-call detection fingerprints observable semantic tool input. Opaque web-search events that
+omit their query still count against the total run budget, but they are not falsely classified as
+identical calls; genuinely repeated queries and stable MCP/command inputs remain protected.
 
 Scheduled pre-market, optional mid-market, and post-market requests allow intentional and recovery
 re-runs, which receive collision-safe report names. Only a near-simultaneous double-fire of the same

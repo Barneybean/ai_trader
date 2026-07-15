@@ -21,6 +21,10 @@ test('tracks only an actual Robinhood get_accounts MCP call', () => {
 
 test('makes the scheduled preflight and correction explicit', () => {
   assert.match(scheduledBrokerPreflightPrompt(), /before any repository documents/i);
+  assert.match(scheduledBrokerPreflightPrompt(), /get_accounts exactly once/i);
+  assert.match(scheduledBrokerPreflightPrompt(), /get_equity_orders.*once with a fixed filter/i);
+  assert.match(scheduledBrokerPreflightPrompt(), /Do not poll, retry, re-read/i);
+  assert.match(scheduledBrokerPreflightPrompt(), /full mode is validate-only/i);
   assert.match(scheduledBrokerPreflightPrompt(), /Never infer that MCP is unavailable/i);
   assert.match(scheduledBrokerCorrectionPrompt(), /cannot be delivered yet/i);
 });

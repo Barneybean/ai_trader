@@ -47,7 +47,24 @@ test('recovery prompt is fresh, report-only, and clamps its tool budget', () => 
   assert.match(prompt, /at most 48 tool calls/i);
   assert.match(prompt, /Do not place, cancel, replace/i);
   assert.match(prompt, /read-only broker capability preflight/i);
+  assert.match(prompt, /Do not repeat broker reads or restart broad web research/i);
   assert.match(prompt, /Run a post market report/);
+});
+
+test('recovery reuses an already-verified scheduled broker snapshot', () => {
+  const prompt = buildReportRecoveryPrompt({
+    originalPrompt: 'Run the scheduled report',
+    maxToolCalls: 36,
+    scheduledKind: 'premarket',
+    brokerSnapshotCaptured: true,
+  });
+  assert.match(prompt, /already completed the read-only broker snapshot/i);
+  assert.match(prompt, /Do not call any broker tool again/i);
+  assert.doesNotMatch(prompt, /Perform the scheduled run's required read-only broker capability preflight/i);
+  assert.match(
+    reportRecoverySafetyInstructions({ brokerSnapshotCaptured: true }),
+    /Do not call any broker tool again/i,
+  );
 });
 
 test('a looped non-report conversation recovers once for any agent', () => {

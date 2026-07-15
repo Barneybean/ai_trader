@@ -164,6 +164,60 @@ export function claudeRateLimitBlocked(info) {
   return Boolean(status) && !status.startsWith('allowed');
 }
 
+function stableToolInput(value) {
+  if (value === null || value === undefined) return '';
+  if (Array.isArray(value)) return `[${value.map(stableToolInput).join(',')}]`;
+  if (typeof value === 'object') {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableToolInput(value[key])}`).join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function firstDefined(...values) {
+  return values.find((value) => value !== undefined && value !== null && value !== '');
+}
+
+function webSearchQuery(value) {
+  if (value === null || value === undefined || value === '') return undefined;
+  if (typeof value === 'string') {
+    try { return webSearchQuery(JSON.parse(value)); }
+    catch { return value; }
+  }
+  if (Array.isArray(value)) return value.length ? value : undefined;
+  if (typeof value !== 'object') return undefined;
+  return firstDefined(
+    value.query,
+    value.q,
+    value.search_query,
+    value.searchQuery,
+    value.queries,
+  );
+}
+
+// Codex may expose a web-search event without its query. Such an opaque event
+// counts toward the whole-run budget but is not evidence that two calls were
+// identical. Observable inputs receive stable, semantic fingerprints.
+export function codexToolFingerprint(item = {}) {
+  const type = String(item?.type || '');
+  if (type === 'web_search') {
+    const query = webSearchQuery(firstDefined(
+      item.query,
+      item.search_query,
+      item.searchQuery,
+      item.input,
+      item.arguments,
+    ));
+    return query === undefined ? null : `web_search:${stableToolInput(query)}`;
+  }
+  if (type === 'command_execution') {
+    return `command_execution:${stableToolInput(item.command)}`;
+  }
+  if (type === 'mcp_tool_call') {
+    return `mcp_tool_call:${String(item.server || '')}:${String(item.tool || '')}:${stableToolInput(firstDefined(item.arguments, item.input))}`;
+  }
+  return `${type}:${stableToolInput(firstDefined(item.arguments, item.input, item.command))}`;
+}
+
 export function createRunCircuitBreaker(options = {}) {
   const maxToolCalls = Math.max(1, Number(options.maxToolCalls || 120));
   const maxIdenticalToolCalls = Math.max(1, Number(options.maxIdenticalToolCalls || 6));
@@ -175,10 +229,11 @@ export function createRunCircuitBreaker(options = {}) {
   return {
     observeTool(signature) {
       toolCalls++;
-      const key = String(signature || 'unknown').slice(0, 4000);
+      if (toolCalls > maxToolCalls) return `tool-call limit exceeded (${toolCalls}/${maxToolCalls})`;
+      if (signature === null || signature === undefined) return null;
+      const key = String(signature).slice(0, 4000);
       const count = (repeated.get(key) || 0) + 1;
       repeated.set(key, count);
-      if (toolCalls > maxToolCalls) return `tool-call limit exceeded (${toolCalls}/${maxToolCalls})`;
       if (count > maxIdenticalToolCalls) {
         return `identical tool call repeated too many times (${count}/${maxIdenticalToolCalls})`;
       }

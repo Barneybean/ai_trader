@@ -40,6 +40,7 @@ import {
   brokerRequestKind,
   claudeRateLimitBlocked,
   codexAvailabilityError,
+  codexToolFingerprint,
   createManualAgentChoice,
   createRunCircuitBreaker,
   formatManualAgentChoiceForPhone,
@@ -726,9 +727,7 @@ function runCodex(prompt, onEvent = () => {}, model = CODEX_MODEL, attachments =
             continue;
           }
           onEvent('execution', { agent: 'codex', phase: 'started', tool, summary });
-          const toolStop = guard.observeTool(JSON.stringify([
-            ev.item.type, ev.item.server, ev.item.tool, ev.item.arguments, ev.item.command,
-          ]));
+          const toolStop = guard.observeTool(codexToolFingerprint(item));
           if (toolStop) { tripCircuit(toolStop); continue; }
         }
         if (ev.type === 'item.completed' && ['command_execution', 'mcp_tool_call', 'web_search'].includes(ev.item?.type)) {
@@ -2516,6 +2515,7 @@ async function handleInbound(replyTo, text, sentAtMs = null, attachments = [], c
         originalPrompt: agentPrompt,
         maxToolCalls: REPORT_RECOVERY_MAX_TOOL_CALLS,
         scheduledKind: runOptions.scheduledKind,
+        brokerSnapshotCaptured: scheduledPreflight?.succeeded === true,
       });
       const recoveryChoice = configuredAgentNames().includes(failed.agent) && failed.model
         ? { agent: failed.agent, model: failed.model } : null;
@@ -2541,7 +2541,9 @@ async function handleInbound(replyTo, text, sentAtMs = null, attachments = [], c
         result = await runPreferredAgent(recoveryPrompt, onRunEvent, recoveryChoice, [], {
           autoModelFallback: false,
           disableBrokerRouting: true,
-          reportRecoveryInstructions: reportRecoverySafetyInstructions(),
+          reportRecoveryInstructions: reportRecoverySafetyInstructions({
+            brokerSnapshotCaptured: scheduledPreflight?.succeeded === true,
+          }),
           blockBrokerActions: true,
           maxToolCalls: REPORT_RECOVERY_MAX_TOOL_CALLS,
           maxIdenticalToolCalls: Math.min(MAX_IDENTICAL_TOOL_CALLS, 4),

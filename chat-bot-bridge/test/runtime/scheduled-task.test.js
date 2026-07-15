@@ -29,6 +29,8 @@ test('builds decision-grade premarket prompt with active mode', () => {
   assert.match(prompt, /without --force/);
   assert.doesNotMatch(prompt, /FILE:/);
   assert.match(prompt, /MANDATORY SCHEDULED-REPORT BROKER PREFLIGHT/);
+  assert.match(prompt, /get_accounts exactly once/);
+  assert.match(prompt, /Do not poll, retry, re-read/i);
   assert.match(prompt, /Mon, Jul 13, 2026 PT/);
 });
 

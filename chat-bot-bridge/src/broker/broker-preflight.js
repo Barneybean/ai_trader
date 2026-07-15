@@ -27,7 +27,8 @@ export function createBrokerPreflightTracker() {
 export function scheduledBrokerPreflightPrompt() {
   return [
     'MANDATORY SCHEDULED-REPORT BROKER PREFLIGHT — complete this before any repository documents, reports, journal history, or local registries.',
-    'Use Robinhood MCP to call get_accounts, then read the live portfolio, positions, open equity/option orders, and needed quotes/tradability for the report.',
+    'Build one read-only broker snapshot and keep its responses in context: call get_accounts exactly once, then for each in-scope account call get_portfolio, get_equity_positions, get_option_positions, get_equity_orders, and get_option_orders once with a fixed filter. Batch later quote requests by symbol whenever the tool supports it.',
+    'Do not poll, retry, re-read, paginate through alternate filters, or repeat a snapshot endpoint with the same account and inputs while researching or writing the report. The public full mode is validate-only and does not authorize a broker refresh for placement or any broker write.',
     'Never infer that MCP is unavailable from the active model, a prior report, or a runtime message. Say unavailable only after an actual MCP call fails, name the failure class, and then use the local fallback.',
     'Respect phone privacy: use account roles in the report and do not expose account identifiers or account dollar values in the phone TLDR.',
   ].join('\n');
