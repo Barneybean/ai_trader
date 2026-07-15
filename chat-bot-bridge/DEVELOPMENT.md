@@ -19,6 +19,16 @@ Node code belongs here only when removing the messenger/runtime would make the c
 meaningless. The bridge may consume desk policy but must not reimplement investment, sizing,
 privacy, or execution decisions.
 
+## Required no-bridge design check
+
+Before adding a bridge feature, ask whether it is still useful when phone messaging is absent. If
+yes, put the behavior in the repository core with a local entrypoint, local result/artifact, and
+documented configuration precedence; make the bridge a thin caller. If no, record why the behavior
+is genuinely transport- or session-specific and test that boundary.
+
+The scheduler shipped in this directory is bridge-backed and requires the bridge process. Do not
+describe it as a bridge-independent core scheduler unless a separate local runtime is implemented.
+
 ## Layout
 
 ```text

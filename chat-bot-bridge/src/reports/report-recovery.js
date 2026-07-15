@@ -3,6 +3,7 @@
 const REPORT_REQUEST_RE = /\b(?:run|rerun|generate|build|create|update|refresh)\b[^\n]{0,80}\breport\b|\b(?:pre|post|mid)[ -]?market\b[^\n]{0,80}\b(?:report|review|desk)\b|\bdaily\s+(?:desk\s+)?report\b/i;
 const TOOL_LIMIT_RE = /\btool[- ]call limit exceeded\b/i;
 const REPEATED_TOOL_RE = /\bidentical tool call repeated too many times\b/i;
+const STALLED_TOOL_RE = /\b(?:identical tool failure repeated too many times|consecutive tool failures without progress)\b/i;
 const BROKER_WRITE_TOOL_RE = /(?:place|submit|cancel|replace|execute|approve|buy|sell)(?:[_-](?:equity|option|stock|crypto))?[_-](?:order|trade|ticket)\b/i;
 
 export function isReportRequest(prompt, options = {}) {
@@ -15,6 +16,7 @@ export function hitToolCallLimit(result) {
   return !result?.ok && (
     TOOL_LIMIT_RE.test(String(result?.text || ''))
     || REPEATED_TOOL_RE.test(String(result?.text || ''))
+    || STALLED_TOOL_RE.test(String(result?.text || ''))
   );
 }
 
@@ -64,12 +66,11 @@ export function shouldRecoverLoopedRun({
     && hitToolCallLimit(result);
 }
 
-export function buildLoopRecoveryPrompt({ originalPrompt, maxToolCalls = 10 } = {}) {
-  const budget = Math.max(1, Math.min(20, Number(maxToolCalls) || 10));
+export function buildLoopRecoveryPrompt({ originalPrompt } = {}) {
   return [
-    'LOOP RECOVERY MODE — one bounded pass.',
-    'The previous attempt stopped because it repeated the same tool call in a loop.',
-    `Use at most ${budget} tool calls. Everything already known, including any pending ticket context, is below.`,
+    'LOOP RECOVERY MODE — one recovery pass.',
+    'The previous attempt looped or stalled on tool calls.',
+    'Use only the tools needed to resolve the request. Successful results are progress, but another repeated or stalled failure stops this one recovery path.',
     'Answer directly and take at most one concrete next action. Do not repeat the call that looped; if a tool is unavailable, continue without it and say so.',
     'For a pending order decision, state what is done, what remains pending, and your recommendation. The active approval mode still controls placement. Reply with a short summary.',
     '',
@@ -80,11 +81,9 @@ export function buildLoopRecoveryPrompt({ originalPrompt, maxToolCalls = 10 } = 
 
 export function buildReportRecoveryPrompt({
   originalPrompt,
-  maxToolCalls = 24,
   scheduledKind = null,
   brokerSnapshotCaptured = false,
 } = {}) {
-  const budget = Math.max(1, Math.min(48, Number(maxToolCalls) || 24));
   const scheduled = String(scheduledKind || '').trim().toLowerCase();
   const preflight = scheduled && scheduled !== 'test' && !brokerSnapshotCaptured
     ? 'Perform the scheduled run\'s required read-only broker capability preflight first. Do not use any broker write tool.'
@@ -93,9 +92,9 @@ export function buildReportRecoveryPrompt({
       : 'Do not use broker tools in this recovery pass.';
   return [
     reportRecoverySafetyInstructions({ brokerSnapshotCaptured }),
-    'REPORT RECOVERY MODE — one bounded completion pass.',
-    'The prior report attempt reached its tool-call safety cap. Start in a fresh session; do not resume or repeat the broad research pipeline.',
-    `Use at most ${budget} tool calls. Inspect current-run drafts, caches, journal context, and generated assets first. Reuse saved market data and any report draft before doing anything else. Do not repeat broker reads or restart broad web research; make at most one targeted check for a decision-critical gap.`,
+    'REPORT RECOVERY MODE — one completion pass.',
+    'The prior report attempt reached a confirmed loop or stalled-failure guard. Start in a fresh session; do not resume or repeat the broad research pipeline.',
+    'Inspect current-run drafts, caches, journal context, and generated assets first. Reuse saved market data and any report draft before doing anything else. Do not repeat broker reads or restart broad web research; make targeted checks only for decision-critical gaps. Continue while producing new evidence or artifacts; a second recovery is not allowed.',
     preflight,
     'Build the requested bilingual HTML report with the repository report tools. Preserve existing reports. If supporting data is incomplete, state the limitation instead of restarting research.',
     'Verify that the completed HTML artifact exists, then reply with a concise summary. Do not start another recovery.',

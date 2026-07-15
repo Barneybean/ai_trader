@@ -38,6 +38,7 @@ import {
   CODEX_UNAVAILABLE_RE,
   availabilityFailure,
   brokerRequestKind,
+  claudeAvailabilityOutcome,
   claudeRateLimitBlocked,
   codexAvailabilityError,
   codexToolFingerprint,
@@ -54,7 +55,7 @@ import { forbiddenSendPath, sanitizePhoneText } from '../delivery/phone-output.j
 import {
   DEFAULT_CLAUDE_MODELS,
   automaticModelHandoffPrompt,
-  buildInterleavedModelPlan,
+  buildPreferredAgentModelPlan,
   buildModelChoiceSet,
   executeAvailabilityPlan,
   formatModelChoiceForPhone,
@@ -225,21 +226,15 @@ const BROKER_AGENT = process.env.BROKER_AGENT || 'claude';
 const CLAUDE_TIMEOUT_MS = Number(process.env.CLAUDE_TIMEOUT_MIN || 60) * 60 * 1000;
 const CODEX_TIMEOUT_MS = Number(process.env.CODEX_TIMEOUT_MIN || 60) * 60 * 1000;
 const MAX_AGENT_ATTEMPTS = Math.max(1, Math.min(4, Number(process.env.MAX_AGENT_ATTEMPTS || 2)));
-const MAX_TOOL_CALLS = Math.max(1, Number(process.env.MAX_TOOL_CALLS || 120));
-const REPORT_MAX_TOOL_CALLS = Math.max(
-  MAX_TOOL_CALLS,
-  Math.min(200, Number(process.env.REPORT_MAX_TOOL_CALLS || 160)),
-);
-const REPORT_RECOVERY_MAX_TOOL_CALLS = Math.max(
-  1,
-  Math.min(48, Number(process.env.REPORT_RECOVERY_MAX_TOOL_CALLS || 24)),
-);
-const LOOP_RECOVERY_MAX_TOOL_CALLS = Math.max(
-  1,
-  Math.min(20, Number(process.env.LOOP_RECOVERY_MAX_TOOL_CALLS || 10)),
-);
+const optionalCeiling = (value) => {
+  if (value === undefined || value === null || String(value).trim() === '') return Infinity;
+  return Number.isFinite(Number(value)) ? Math.max(0, Number(value)) : Infinity;
+};
+const MAX_TOOL_CALLS = optionalCeiling(process.env.MAX_TOOL_CALLS);
 const MAX_IDENTICAL_TOOL_CALLS = Math.max(1, Number(process.env.MAX_IDENTICAL_TOOL_CALLS || 6));
-const MAX_STREAM_OUTPUT_TOKENS = Math.max(1, Number(process.env.MAX_STREAM_OUTPUT_TOKENS || 64_000));
+const MAX_IDENTICAL_TOOL_FAILURES = Math.max(1, Number(process.env.MAX_IDENTICAL_TOOL_FAILURES || 3));
+const MAX_CONSECUTIVE_TOOL_FAILURES = Math.max(1, Number(process.env.MAX_CONSECUTIVE_TOOL_FAILURES || 8));
+const MAX_STREAM_OUTPUT_TOKENS = optionalCeiling(process.env.MAX_STREAM_OUTPUT_TOKENS);
 const MAX_QUEUE_DEPTH = Math.max(0, Number(process.env.MAX_QUEUE_DEPTH || 5));
 const BROKER_RECOVERY_WINDOW_MS = Math.max(60_000, Number(process.env.BROKER_RECOVERY_WINDOW_MIN || 15) * 60_000);
 const PHONE_EXECUTION_LOG = (process.env.PHONE_EXECUTION_LOG || 'off').toLowerCase();
@@ -516,10 +511,13 @@ function runClaude(prompt, onEvent = () => {}, model = CLAUDE_MODEL, attachments
     let circuitBroken = null;
     let lastTroubleMs = 0, troubleCount = 0;
     const toolNames = new Map();
+    const toolFingerprints = new Map();
     const guard = createRunCircuitBreaker({
-      maxToolCalls: Number(runtime.maxToolCalls) || MAX_TOOL_CALLS,
-      maxIdenticalToolCalls: Number(runtime.maxIdenticalToolCalls) || MAX_IDENTICAL_TOOL_CALLS,
-      maxOutputTokens: Number(runtime.maxOutputTokens) || MAX_STREAM_OUTPUT_TOKENS,
+      maxToolCalls: Number.isFinite(Number(runtime.maxToolCalls)) ? Number(runtime.maxToolCalls) : MAX_TOOL_CALLS,
+      maxIdenticalToolCalls: Number.isFinite(Number(runtime.maxIdenticalToolCalls)) ? Number(runtime.maxIdenticalToolCalls) : MAX_IDENTICAL_TOOL_CALLS,
+      maxIdenticalToolFailures: Number.isFinite(Number(runtime.maxIdenticalToolFailures)) ? Number(runtime.maxIdenticalToolFailures) : MAX_IDENTICAL_TOOL_FAILURES,
+      maxConsecutiveToolFailures: Number.isFinite(Number(runtime.maxConsecutiveToolFailures)) ? Number(runtime.maxConsecutiveToolFailures) : MAX_CONSECUTIVE_TOOL_FAILURES,
+      maxOutputTokens: Number.isFinite(Number(runtime.maxOutputTokens)) ? Number(runtime.maxOutputTokens) : MAX_STREAM_OUTPUT_TOKENS,
     });
     const tripCircuit = (reason) => {
       if (circuitBroken) return;
@@ -565,9 +563,11 @@ function runClaude(prompt, onEvent = () => {}, model = CLAUDE_MODEL, attachments
               tripCircuit(`report recovery blocked broker order tool (${c.name})`);
               break;
             }
+            const fingerprint = JSON.stringify([c.name, c.input]);
             onEvent('execution', { agent: 'claude', phase: 'started', tool: c.name,
               summary: summarizeTool(c.name, c.input) });
-            const toolStop = guard.observeTool(JSON.stringify([c.name, c.input]));
+            toolFingerprints.set(c.id, fingerprint);
+            const toolStop = guard.observeTool(fingerprint);
             if (toolStop) { tripCircuit(toolStop); break; }
           }
         }
@@ -586,6 +586,8 @@ function runClaude(prompt, onEvent = () => {}, model = CLAUDE_MODEL, attachments
               reason: fallbackReason,
               ...(resetAtMs ? { resetAtMs } : {}),
             });
+            state.claudeSessionId = null;
+            saveState(state);
             reportTrouble(`Claude usage limit: ${ri.status}${resets}`);
             child.kill('SIGTERM');
           }
@@ -598,10 +600,17 @@ function runClaude(prompt, onEvent = () => {}, model = CLAUDE_MODEL, attachments
         if (ev.type === 'user') {
           for (const c of ev.message?.content || []) {
             if (c.type !== 'tool_result') continue;
-            onEvent('execution', { agent: 'claude', phase: 'completed', ok: c.is_error !== true,
-              tool: toolNames.get(c.tool_use_id) || 'tool' });
-            if (c.is_error !== true) continue;
+            const failed = c.is_error === true;
             const t = typeof c.content === 'string' ? c.content : JSON.stringify(c.content ?? '');
+            onEvent('execution', { agent: 'claude', phase: 'completed', ok: !failed,
+              tool: toolNames.get(c.tool_use_id) || 'tool' });
+            const toolStop = guard.observeToolResult({
+              signature: toolFingerprints.get(c.tool_use_id) || null,
+              ok: !failed,
+              error: failed ? t : null,
+            });
+            if (toolStop) { tripCircuit(toolStop); break; }
+            if (!failed) continue;
             if (TROUBLE_RE.test(t)) reportTrouble(t.match(/[^"\\]*(?:rate.?limit|429|529|fetch failed|failed to fetch|ETIMEDOUT|ECONNRESET|ENOTFOUND|too many requests|overloaded)[^"\\]*/i)?.[0] || t);
           }
         }
@@ -627,36 +636,52 @@ function runClaude(prompt, onEvent = () => {}, model = CLAUDE_MODEL, attachments
           fallbackEligible: false, text: activeRun.interrupt.reason });
       } else if (circuitBroken) {
         resolve({ ok: false, agent: 'claude', model, fallbackEligible: false,
-          text: `Circuit breaker stopped Claude: ${circuitBroken}. The run was halted to prevent a loop or excess token use.` });
-      } else if (result) {
-        if (result.session_id) { state.claudeSessionId = result.session_id; }
-        state.lastRunAt = Date.now();
-        saveState(state);
-        const text = result.result || result.error || '(empty reply)';
-        const unavailable = Boolean(result.is_error && availabilityFailure(text));
-        const u = result.usage || {};
-        resolve({
-          ok: !result.is_error,
-          text: String(text),
-          costUsd: result.total_cost_usd,
-          agent: 'claude', model: result.model || model,
-          fallbackEligible: unavailable,
-          switchReason: unavailable ? String(text).slice(0, 500) : null,
-          resetAtMs: unavailable ? resetAtMs : null,
-          tokens: {
-            in: u.input_tokens, out: u.output_tokens,
-            cache_read: u.cache_read_input_tokens, cache_write: u.cache_creation_input_tokens,
-          },
-        });
-      } else if (timedOut) {
-        resolve({ ok: false, agent: 'claude', model, fallbackEligible: false, text: `run hit the ${Math.round(CLAUDE_TIMEOUT_MS / 60_000)}-min bridge limit and was stopped — the work up to that point is saved in the session; send a follow-up to resume/finish it.` });
-      } else if (fallbackRequested) {
-        resolve({ ok: false, agent: 'claude', model, fallbackEligible: true,
-          switchReason: fallbackReason || 'usage limit reached', resetAtMs,
-          text: `${model} hit a usage limit and paused for model selection.` });
+          text: `Circuit breaker stopped Claude: ${circuitBroken}. The run was halted after a confirmed loop or stalled-failure pattern.` });
       } else {
-        const tail = err.trim().slice(-1500);
-        resolve({ ok: false, agent: 'claude', model, fallbackEligible: false, text: `claude exited (code ${code}) without a result.\n${tail || '(no output)'}` });
+        const availability = claudeAvailabilityOutcome({
+          rateLimitEvent: fallbackRequested,
+          rateLimitReason: fallbackReason,
+          resetAtMs,
+          result,
+        });
+        if (availability.unavailable) {
+          const text = result?.result || result?.error
+            || `${model} hit a usage limit; availability fallback is continuing.`;
+          resolve({
+            ok: false,
+            text: String(text),
+            agent: 'claude', model: result?.model || model,
+            fallbackEligible: true,
+            availabilityFailure: true,
+            switchReason: availability.reason,
+            resetAtMs: availability.resetAtMs,
+          });
+        } else if (result) {
+          if (result.session_id) state.claudeSessionId = result.session_id;
+          state.lastRunAt = Date.now();
+          saveState(state);
+          const text = result.result || result.error || '(empty reply)';
+          const unavailable = Boolean(result.is_error && availabilityFailure(text));
+          const u = result.usage || {};
+          resolve({
+            ok: !result.is_error,
+            text: String(text),
+            costUsd: result.total_cost_usd,
+            agent: 'claude', model: result.model || model,
+            fallbackEligible: unavailable,
+            switchReason: unavailable ? String(text).slice(0, 500) : null,
+            resetAtMs: unavailable ? resetAtMs : null,
+            tokens: {
+              in: u.input_tokens, out: u.output_tokens,
+              cache_read: u.cache_read_input_tokens, cache_write: u.cache_creation_input_tokens,
+            },
+          });
+        } else if (timedOut) {
+          resolve({ ok: false, agent: 'claude', model, fallbackEligible: false, text: `run hit the ${Math.round(CLAUDE_TIMEOUT_MS / 60_000)}-min bridge limit and was stopped — the work up to that point is saved in the session; send a follow-up to resume/finish it.` });
+        } else {
+          const tail = err.trim().slice(-1500);
+          resolve({ ok: false, agent: 'claude', model, fallbackEligible: false, text: `claude exited (code ${code}) without a result.\n${tail || '(no output)'}` });
+        }
       }
     });
   });
@@ -692,10 +717,13 @@ function runCodex(prompt, onEvent = () => {}, model = CODEX_MODEL, attachments =
     }
     let buf = '', err = '', eventTail = '', availabilityError = '', finalText = '', sessionId = null, usage = null;
     let started = false, timedOut = false, settled = false, circuitBroken = null;
+    const toolFingerprints = new Map();
     const guard = createRunCircuitBreaker({
-      maxToolCalls: Number(runtime.maxToolCalls) || MAX_TOOL_CALLS,
-      maxIdenticalToolCalls: Number(runtime.maxIdenticalToolCalls) || MAX_IDENTICAL_TOOL_CALLS,
-      maxOutputTokens: Number(runtime.maxOutputTokens) || MAX_STREAM_OUTPUT_TOKENS,
+      maxToolCalls: Number.isFinite(Number(runtime.maxToolCalls)) ? Number(runtime.maxToolCalls) : MAX_TOOL_CALLS,
+      maxIdenticalToolCalls: Number.isFinite(Number(runtime.maxIdenticalToolCalls)) ? Number(runtime.maxIdenticalToolCalls) : MAX_IDENTICAL_TOOL_CALLS,
+      maxIdenticalToolFailures: Number.isFinite(Number(runtime.maxIdenticalToolFailures)) ? Number(runtime.maxIdenticalToolFailures) : MAX_IDENTICAL_TOOL_FAILURES,
+      maxConsecutiveToolFailures: Number.isFinite(Number(runtime.maxConsecutiveToolFailures)) ? Number(runtime.maxConsecutiveToolFailures) : MAX_CONSECUTIVE_TOOL_FAILURES,
+      maxOutputTokens: Number.isFinite(Number(runtime.maxOutputTokens)) ? Number(runtime.maxOutputTokens) : MAX_STREAM_OUTPUT_TOKENS,
     });
     const finish = (value) => { if (settled) return; settled = true; resolve(value); };
     const tripCircuit = (reason) => {
@@ -727,7 +755,9 @@ function runCodex(prompt, onEvent = () => {}, model = CODEX_MODEL, attachments =
             continue;
           }
           onEvent('execution', { agent: 'codex', phase: 'started', tool, summary });
-          const toolStop = guard.observeTool(codexToolFingerprint(item));
+          const fingerprint = codexToolFingerprint(item);
+          if (item.id) toolFingerprints.set(item.id, fingerprint);
+          const toolStop = guard.observeTool(fingerprint);
           if (toolStop) { tripCircuit(toolStop); continue; }
         }
         if (ev.type === 'item.completed' && ['command_execution', 'mcp_tool_call', 'web_search'].includes(ev.item?.type)) {
@@ -737,6 +767,14 @@ function runCodex(prompt, onEvent = () => {}, model = CODEX_MODEL, attachments =
           const failed = item.status === 'failed' || (Number.isInteger(item.exit_code) && item.exit_code !== 0);
           onEvent('execution', { agent: 'codex', phase: 'completed', ok: !failed, tool,
             summary: Number.isInteger(item.exit_code) ? `exit ${item.exit_code}` : String(item.status || '') });
+          const toolStop = guard.observeToolResult({
+            signature: toolFingerprints.get(item.id) || codexToolFingerprint(item),
+            ok: !failed,
+            error: failed
+              ? [item.error?.message, item.stderr, item.output, item.status].filter(Boolean).join(' ')
+              : null,
+          });
+          if (toolStop) { tripCircuit(toolStop); continue; }
         }
         if (ev.type === 'item.completed' && ev.item?.type === 'agent_message') {
           finalText = ev.item.text || finalText;
@@ -747,6 +785,8 @@ function runCodex(prompt, onEvent = () => {}, model = CODEX_MODEL, attachments =
         const unavailable = codexAvailabilityError(ev);
         if (unavailable) {
           availabilityError = unavailable;
+          state.codexSessionId = null;
+          saveState(state);
           onEvent('trouble', `Codex availability: ${unavailable.slice(0, 250)}`);
         }
       }
@@ -760,12 +800,12 @@ function runCodex(prompt, onEvent = () => {}, model = CODEX_MODEL, attachments =
           fallbackEligible: false, text: activeRun.interrupt.reason });
       } else if (circuitBroken) {
         finish({ ok: false, agent: 'codex', model, fallbackEligible: false,
-          text: `Circuit breaker stopped Codex: ${circuitBroken}. The run was halted to prevent a loop or excess token use.` });
+          text: `Circuit breaker stopped Codex: ${circuitBroken}. The run was halted after a confirmed loop or stalled-failure pattern.` });
       } else if (finalText) {
         if (availabilityError) {
           finish({
             ok: false,
-            agent: 'codex', model, fallbackEligible: true,
+            agent: 'codex', model, fallbackEligible: true, availabilityFailure: true,
             switchReason: availabilityError.slice(-1500),
             text: finalText,
           });
@@ -780,10 +820,13 @@ function runCodex(prompt, onEvent = () => {}, model = CODEX_MODEL, attachments =
       } else {
         const detail = (err || eventTail || buf).trim().slice(-1500) || `Codex exited ${code} without a final message`;
         const unavailable = (availabilityError || err).trim();
-        finish({ ok: false, agent: 'codex', fallbackEligible: !timedOut && Boolean(unavailable && CODEX_UNAVAILABLE_RE.test(unavailable)),
+        const availabilityFailure = !timedOut
+          && Boolean(unavailable && CODEX_UNAVAILABLE_RE.test(unavailable));
+        finish({ ok: false, agent: 'codex', fallbackEligible: availabilityFailure,
                  model,
-                 switchNotified: Boolean(unavailable && CODEX_UNAVAILABLE_RE.test(unavailable)),
-                 switchReason: unavailable && CODEX_UNAVAILABLE_RE.test(unavailable) ? unavailable.slice(-1500) : null,
+                 availabilityFailure,
+                 switchNotified: availabilityFailure,
+                 switchReason: availabilityFailure ? unavailable.slice(-1500) : null,
                  text: timedOut ? `Codex hit the ${Math.round(CODEX_TIMEOUT_MS / 60_000)}-minute bridge limit.` : detail });
       }
     });
@@ -847,7 +890,7 @@ async function runAutomaticModelPlan(prompt, onEvent, attachments, preferredAgen
     saveState(state);
     logEvent('scheduled_sessions_reset', { kind: options.scheduledKind || null });
   }
-  const plan = buildInterleavedModelPlan({
+  const plan = buildPreferredAgentModelPlan({
     preferredAgent,
     defaultClaudeModel: routableDefaultModel(
       'claude',
@@ -865,6 +908,7 @@ async function runAutomaticModelPlan(prompt, onEvent, attachments, preferredAgen
   }).filter((choice) => runners[choice.agent]);
   const runLabel = options.scheduledKind ? 'scheduled run' : 'automatic availability run';
   const attemptedAgents = new Set();
+  const attemptedModels = new Map();
   const execution = await executeAvailabilityPlan({
     plan,
     prompt,
@@ -885,17 +929,25 @@ async function runAutomaticModelPlan(prompt, onEvent, attachments, preferredAgen
       });
     },
     onAttempt: (choice, index) => {
-      // A different agent cannot continue the current agent's session. Its
-      // previously saved phone session may be unrelated and expensive to replay,
-      // so start clean on first entry; later returns in this plan resume the
-      // session created for this same fallback chain.
-      if (!attemptedAgents.has(choice.agent) && attemptedAgents.size > 0) {
+      const priorModel = attemptedModels.get(choice.agent);
+      // A replacement model cannot safely inherit a failed model's partial
+      // provider session. Cross-agent handoffs also start clean; the bounded
+      // handoff prompt carries completed context and the original objective.
+      if (priorModel && priorModel !== choice.model) {
+        if (choice.agent === 'claude') state.claudeSessionId = null;
+        else state.codexSessionId = null;
+        saveState(state);
+        logEvent('automatic_model_session_reset', {
+          agent: choice.agent, prior_model: priorModel, model: choice.model, run: runLabel,
+        });
+      } else if (!attemptedAgents.has(choice.agent) && attemptedAgents.size > 0) {
         if (choice.agent === 'claude') state.claudeSessionId = null;
         else state.codexSessionId = null;
         saveState(state);
         logEvent('automatic_target_session_reset', { agent: choice.agent, run: runLabel });
       }
       attemptedAgents.add(choice.agent);
+      attemptedModels.set(choice.agent, choice.model);
       logEvent(options.scheduledKind ? 'scheduled_model_attempt' : 'full_auto_model_attempt', {
         attempt: index + 1, total: plan.length,
         agent: choice.agent, model: choice.model,
@@ -913,6 +965,8 @@ async function runAutomaticModelPlan(prompt, onEvent, attachments, preferredAgen
         blockBrokerActions: options.blockBrokerActions,
         maxToolCalls: options.maxToolCalls,
         maxIdenticalToolCalls: options.maxIdenticalToolCalls,
+        maxIdenticalToolFailures: options.maxIdenticalToolFailures,
+        maxConsecutiveToolFailures: options.maxConsecutiveToolFailures,
         maxOutputTokens: options.maxOutputTokens,
       });
       if (result.ok && shouldFallbackForBroker(prompt, result.text)) {
@@ -982,7 +1036,9 @@ async function runAutomaticModelPlan(prompt, onEvent, attachments, preferredAgen
     fallbackEligible: false,
     modelPlan: plan,
     attempts,
-    text: `All ${plan.length} ${runLabel} model candidates were unavailable. Last error: ${last.text}`,
+    text: plan.length
+      ? `All ${plan.length} ${runLabel} model candidates were unavailable. Last error: ${last.text}`
+      : `No eligible ${runLabel} model candidates remain; all configured models are currently unavailable. Use /agent to view reset times or select a model.`,
   };
 }
 
@@ -1068,6 +1124,8 @@ async function runPreferredAgent(prompt, onEvent = () => {}, forcedChoice = null
       blockBrokerActions: options.blockBrokerActions,
       maxToolCalls: options.maxToolCalls,
       maxIdenticalToolCalls: options.maxIdenticalToolCalls,
+      maxIdenticalToolFailures: options.maxIdenticalToolFailures,
+      maxConsecutiveToolFailures: options.maxConsecutiveToolFailures,
       maxOutputTokens: options.maxOutputTokens,
     });
     if (last.ok && shouldFallbackForBroker(prompt, last.text)) {
@@ -1831,7 +1889,8 @@ function routableDefaultModel(agent, model) {
 
 function isModelAvailabilityFailure(result) {
   if (!result || result.ok) return false;
-  return explicitFutureResetAtMs(result.resetAtMs) !== null ||
+  return result.availabilityFailure === true
+    || explicitFutureResetAtMs(result.resetAtMs) !== null ||
     availabilityFailure(`${result.switchReason || ''}\n${result.text || ''}`);
 }
 
@@ -2362,10 +2421,6 @@ async function handleInbound(replyTo, text, sentAtMs = null, attachments = [], c
       });
     }
   }
-  const initialRunOptions = reportRequest ? {
-    ...runOptions,
-    maxToolCalls: Number(runOptions.maxToolCalls) || REPORT_MAX_TOOL_CALLS,
-  } : runOptions;
   const startMs = Date.now();
   if (reportRequest) {
     try { reportSnapshot = captureReportSnapshot(REPORTS_DIR); }
@@ -2456,8 +2511,8 @@ async function handleInbound(replyTo, text, sentAtMs = null, attachments = [], c
       logEvent('run_trouble', { detail });
     } else if (kind === 'circuit_breaker') {
       const recoveryNote = reportRequest && !brokerExecution
-        ? 'Completed report work will be preserved for one bounded recovery.'
-        : 'The run was stopped to prevent a loop or excess token use.';
+        ? 'Completed report work will be preserved for one fresh recovery.'
+        : 'The run was stopped after a confirmed loop or stalled-failure pattern.';
       sendStatus(replyTo, 'circuit_breaker', `🛑 Circuit breaker stopped this pass.\n${detail?.reason || 'Safety limit reached.'}\n${recoveryNote}`);
       logEvent('circuit_breaker', detail || {});
       transcript.append('STOP', detail?.reason || 'circuit breaker');
@@ -2467,7 +2522,7 @@ async function handleInbound(replyTo, text, sentAtMs = null, attachments = [], c
     }
   };
   let result = await runPreferredAgent(
-    agentPrompt, onRunEvent, forcedChoice, runAttachments, initialRunOptions,
+    agentPrompt, onRunEvent, forcedChoice, runAttachments, runOptions,
   );
   if (agentStartedTimer) {
     clearTimeout(agentStartedTimer);
@@ -2513,7 +2568,6 @@ async function handleInbound(replyTo, text, sentAtMs = null, attachments = [], c
       const failed = result;
       const recoveryPrompt = buildReportRecoveryPrompt({
         originalPrompt: agentPrompt,
-        maxToolCalls: REPORT_RECOVERY_MAX_TOOL_CALLS,
         scheduledKind: runOptions.scheduledKind,
         brokerSnapshotCaptured: scheduledPreflight?.succeeded === true,
       });
@@ -2529,12 +2583,11 @@ async function handleInbound(replyTo, text, sentAtMs = null, attachments = [], c
       await sendStatus(
         replyTo,
         'report_recovery',
-        '♻️ Report work reached its safety budget. Running one fresh, bounded artifact-completion pass; no broker order action is permitted.',
+        '♻️ Report work hit a confirmed loop or stalled failure. Running one fresh artifact-completion pass; no broker order action is permitted.',
       );
       logEvent('report_recovery_started', {
         agent: failed.agent,
         model: failed.model,
-        max_tool_calls: REPORT_RECOVERY_MAX_TOOL_CALLS,
         scheduled_kind: runOptions.scheduledKind || null,
       });
       try {
@@ -2545,9 +2598,6 @@ async function handleInbound(replyTo, text, sentAtMs = null, attachments = [], c
             brokerSnapshotCaptured: scheduledPreflight?.succeeded === true,
           }),
           blockBrokerActions: true,
-          maxToolCalls: REPORT_RECOVERY_MAX_TOOL_CALLS,
-          maxIdenticalToolCalls: Math.min(MAX_IDENTICAL_TOOL_CALLS, 4),
-          maxOutputTokens: Math.min(MAX_STREAM_OUTPUT_TOKENS, 24_000),
         });
       } finally {
         state.claudeSessionId = savedSessions.claudeSessionId;
@@ -2578,7 +2628,7 @@ async function handleInbound(replyTo, text, sentAtMs = null, attachments = [], c
           fallbackEligible: false,
           text: !preflightOk
             ? 'Scheduled report recovery stopped because the required read-only broker preflight was not observed.'
-            : 'The bounded recovery finished without producing a completed HTML report artifact.',
+            : 'The recovery finished without producing a completed HTML report artifact.',
         };
       }
       logEvent('report_recovery_finished', {
@@ -2597,23 +2647,19 @@ async function handleInbound(replyTo, text, sentAtMs = null, attachments = [], c
   })) {
     loopRecoveryAttempted = true;
     const initialFailure = result;
-    const recoveryPrompt = buildLoopRecoveryPrompt({
-      originalPrompt: agentPrompt,
-      maxToolCalls: LOOP_RECOVERY_MAX_TOOL_CALLS,
-    });
+    const recoveryPrompt = buildLoopRecoveryPrompt({ originalPrompt: agentPrompt });
     transcript.append(
       'RECOVERY',
-      `${agentLabel(initialFailure.agent, initialFailure.model)} looped; running one bounded ${LOOP_RECOVERY_MAX_TOOL_CALLS}-call recovery pass.`,
+      `${agentLabel(initialFailure.agent, initialFailure.model)} looped or stalled; running one recovery pass.`,
     );
     logEvent('loop_recovery_started', {
       agent: initialFailure.agent,
       model: initialFailure.model,
-      max_tool_calls: LOOP_RECOVERY_MAX_TOOL_CALLS,
     });
     await sendStatus(
       replyTo,
       'loop_recovery',
-      '♻️ That pass repeated a step. Running one quick bounded pass to answer directly.',
+      '♻️ That pass looped or stalled on a tool step. Running one clean recovery pass to answer directly.',
     );
     result = await runPreferredAgent(
       recoveryPrompt,
@@ -2625,8 +2671,6 @@ async function handleInbound(replyTo, text, sentAtMs = null, attachments = [], c
         autoModelFallback: false,
         resetSessions: true,
         disableBrokerRouting: true,
-        maxToolCalls: LOOP_RECOVERY_MAX_TOOL_CALLS,
-        maxIdenticalToolCalls: Math.min(MAX_IDENTICAL_TOOL_CALLS, 3),
       },
     );
   }

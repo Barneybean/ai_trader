@@ -1,6 +1,6 @@
 # ADR-0035: Looped non-report runs get one bounded recovery
 
-Date: 2026-07-15 · Status: Accepted
+Date: 2026-07-15 · Status: Superseded by ADR-0038
 
 ## Context
 

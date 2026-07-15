@@ -24,8 +24,16 @@ test('recognizes manual and scheduled report requests', () => {
   assert.equal(isReportRequest('anything', { scheduledKind: 'test' }), false);
 });
 
-test('recovers only an unfinished report that hit the tool-call limit', () => {
+test('recovers only an unfinished report stopped by a tool circuit guard', () => {
   assert.equal(hitToolCallLimit(capped), true);
+  assert.equal(hitToolCallLimit({
+    ok: false,
+    text: 'Circuit breaker stopped the runner: identical tool failure repeated too many times (4/3).',
+  }), true);
+  assert.equal(hitToolCallLimit({
+    ok: false,
+    text: 'Circuit breaker stopped the runner: consecutive tool failures without progress (9/8).',
+  }), true);
   assert.equal(shouldRecoverReportRun({ result: capped, prompt: 'Run a post market report' }), true);
   assert.equal(shouldRecoverReportRun({
     result: capped, prompt: 'Run a post market report', brokerExecution: true,
@@ -39,12 +47,13 @@ test('recovers only an unfinished report that hit the tool-call limit', () => {
   assert.equal(shouldRecoverReportRun({ result: capped, prompt: 'Check a symbol' }), false);
 });
 
-test('recovery prompt is fresh, report-only, and clamps its tool budget', () => {
+test('recovery prompt is fresh, report-only, and permits no second recovery', () => {
   const prompt = buildReportRecoveryPrompt({
-    originalPrompt: 'Run a post market report', maxToolCalls: 500, scheduledKind: 'postmarket',
+    originalPrompt: 'Run a post market report', scheduledKind: 'postmarket',
   });
   assert.match(prompt, /fresh session/i);
-  assert.match(prompt, /at most 48 tool calls/i);
+  assert.match(prompt, /second recovery is not allowed/i);
+  assert.doesNotMatch(prompt, /at most \d+ tool calls/i);
   assert.match(prompt, /Do not place, cancel, replace/i);
   assert.match(prompt, /read-only broker capability preflight/i);
   assert.match(prompt, /Do not repeat broker reads or restart broad web research/i);
@@ -54,7 +63,6 @@ test('recovery prompt is fresh, report-only, and clamps its tool budget', () => 
 test('recovery reuses an already-verified scheduled broker snapshot', () => {
   const prompt = buildReportRecoveryPrompt({
     originalPrompt: 'Run the scheduled report',
-    maxToolCalls: 36,
     scheduledKind: 'premarket',
     brokerSnapshotCaptured: true,
   });
@@ -79,10 +87,11 @@ test('a looped non-report conversation recovers once for any agent', () => {
   assert.equal(shouldRecoverLoopedRun({ result: { ok: false, text: 'rate limited' }, prompt: 'What now?' }), false);
 });
 
-test('loop recovery is bounded and preserves the original message', () => {
-  const prompt = buildLoopRecoveryPrompt({ originalPrompt: 'Why change ticket 2?', maxToolCalls: 50 });
-  assert.match(prompt, /repeated the same tool call/i);
-  assert.match(prompt, /at most 20 tool calls/i);
+test('loop recovery gets one progress-aware pass and preserves the original message', () => {
+  const prompt = buildLoopRecoveryPrompt({ originalPrompt: 'Why change ticket 2?' });
+  assert.match(prompt, /looped or stalled on tool calls/i);
+  assert.match(prompt, /one recovery pass/i);
+  assert.doesNotMatch(prompt, /at most \d+ tool calls/i);
   assert.match(prompt, /do not repeat the call/i);
   assert.match(prompt, /active approval mode/i);
   assert.match(prompt, /Why change ticket 2\?/);

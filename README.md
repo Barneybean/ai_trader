@@ -93,6 +93,8 @@ Four ways to use it:
 **2. Scheduled reports**
 - Run recurring reviews of your watchlist and portfolio.
 - Receive HTML reports with tactical and long-term actions—or an honest *“nothing clears the bar.”*
+- The included scheduler is part of the optional phone bridge, so that bridge process must be
+  running. Without it, run or schedule the normal terminal workflow directly.
 
 **3. Confirmed execution**
 - **Agent recommends → you approve → broker places.**
@@ -376,7 +378,8 @@ supply (see *Portability & capability detection* in `SKILL.md`).
 - [ ] Calls are logged and later scored so confidence can be earned from outcomes.
 
 After the manual flow is reliable, consider weekday pre-market and post-close runs plus a weekly
-review. Scheduled reports still require confirmation before execution.
+review. The included schedules are bridge-backed, and scheduled reports still require confirmation
+before execution.
 
 ### Repository layout
 

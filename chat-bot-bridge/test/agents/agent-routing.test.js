@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   availabilityFailure,
   brokerRequestKind,
+  claudeAvailabilityOutcome,
   codexAvailabilityError,
   codexToolFingerprint,
   createRunCircuitBreaker,
@@ -91,8 +92,25 @@ test('manual picker keeps its model-numbering contract for a future registered a
 
 test('recognizes synthetic usage-limit replies as fallback eligible', () => {
   assert.equal(availabilityFailure("You've reached your Fable 5 limit. Run /usage-credits to continue."), true);
+  assert.equal(availabilityFailure("You've hit your weekly limit. It resets tonight."), true);
   assert.equal(availabilityFailure('rate limit reached; try again later'), true);
   assert.equal(availabilityFailure('Report completed normally.'), false);
+});
+
+test('an explicit Claude rate-limit event wins over an ambiguous final result', () => {
+  assert.deepEqual(claudeAvailabilityOutcome({
+    rateLimitEvent: true,
+    rateLimitReason: 'usage limit: rejected — resets 7:00 PM PT',
+    resetAtMs: 1_234_567,
+    result: { is_error: false, result: "You've hit your weekly limit." },
+  }), {
+    unavailable: true,
+    reason: 'usage limit: rejected — resets 7:00 PM PT',
+    resetAtMs: 1_234_567,
+  });
+  assert.deepEqual(claudeAvailabilityOutcome({
+    result: { is_error: true, error: 'report input was invalid' },
+  }), { unavailable: false, reason: null, resetAtMs: null });
 });
 
 test('does not classify failed command output as Codex unavailability', () => {
@@ -115,6 +133,70 @@ test('uses recent ticket context for a bare confirmation', () => {
 test('does not mistake research questions for execution', () => {
   assert.equal(brokerRequestKind('Should I buy NKE after earnings?'), null);
   assert.equal(brokerRequestKind('Explain the order execution methodology'), null);
+});
+
+test('a zero-tool diagnostic ceiling stops the first attempted tool', () => {
+  const guard = createRunCircuitBreaker({
+    maxToolCalls: 0, maxIdenticalToolCalls: 0, maxOutputTokens: 100,
+  });
+  assert.match(guard.observeTool('any tool'), /1\/0/);
+});
+
+test('progress-aware budgets permit diverse successful research by default', () => {
+  const guard = createRunCircuitBreaker({ maxIdenticalToolCalls: 10 });
+  for (let index = 0; index < 300; index++) {
+    const signature = `web_search:${index}`;
+    assert.equal(guard.observeTool(signature), null);
+    assert.equal(guard.observeToolResult({ signature, ok: true }), null);
+    assert.equal(guard.observeOutputTokens(1_000), null);
+  }
+  assert.deepEqual(guard.snapshot(), {
+    toolCalls: 300, outputTokens: 300_000, consecutiveToolFailures: 0,
+  });
+});
+
+test('progress guard stops repeated or sustained failures and resets after success', () => {
+  const repeated = createRunCircuitBreaker({
+    maxIdenticalToolCalls: 10,
+    maxIdenticalToolFailures: 2,
+    maxConsecutiveToolFailures: 8,
+  });
+  for (let index = 0; index < 2; index++) {
+    assert.equal(repeated.observeTool('mcp:get_accounts'), null);
+    assert.equal(repeated.observeToolResult({
+      signature: 'mcp:get_accounts', ok: false, error: `connection refused ${5_001 + index}`,
+    }), null);
+  }
+  assert.equal(repeated.observeTool('mcp:get_accounts'), null);
+  assert.match(repeated.observeToolResult({
+    signature: 'mcp:get_accounts', ok: false, error: 'connection refused 5003',
+  }), /identical tool failure repeated/);
+
+  const stalled = createRunCircuitBreaker({
+    maxIdenticalToolCalls: 10,
+    maxIdenticalToolFailures: 10,
+    maxConsecutiveToolFailures: 2,
+  });
+  for (let index = 0; index < 2; index++) {
+    const signature = `web:${index}`;
+    assert.equal(stalled.observeTool(signature), null);
+    assert.equal(stalled.observeToolResult({
+      signature, ok: false, error: 'network unavailable',
+    }), null);
+  }
+  assert.equal(stalled.observeTool('web:success'), null);
+  assert.equal(stalled.observeToolResult({ signature: 'web:success', ok: true }), null);
+  for (let index = 2; index < 4; index++) {
+    const signature = `web:${index}`;
+    assert.equal(stalled.observeTool(signature), null);
+    assert.equal(stalled.observeToolResult({
+      signature, ok: false, error: 'network unavailable',
+    }), null);
+  }
+  assert.equal(stalled.observeTool('web:4'), null);
+  assert.match(stalled.observeToolResult({
+    signature: 'web:4', ok: false, error: 'network unavailable',
+  }), /consecutive tool failures without progress/);
 });
 
 test('Codex fingerprints observable tool inputs without merging opaque searches', () => {

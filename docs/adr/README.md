@@ -55,5 +55,7 @@ Routine bug fixes, copy edits, and new reference content don't need one.
 - [ADR-0032](0032-computed-trigger-levels-persist-in-the-journal.md) — Computed trigger levels persist in the journal — Accepted
 - [ADR-0033](0033-ticket-lifecycle-is-closeable-non-carrying-and-reconciled.md) — Ticket lifecycle is closeable, non-carrying, and reconciled — Accepted
 - [ADR-0034](0034-pending-ticket-talk-is-a-natural-conversation.md) — Pending-ticket talk is a natural conversation — Accepted
-- [ADR-0035](0035-looped-non-report-runs-get-one-bounded-recovery.md) — Looped non-report runs get one bounded recovery — Accepted
+- [ADR-0035](0035-looped-non-report-runs-get-one-bounded-recovery.md) — Looped non-report runs get one bounded recovery — Superseded by ADR-0038
 - [ADR-0036](0036-bridge-runtime-boundary-and-domain-layout.md) — Bridge runtime boundary and domain layout — Accepted
+- [ADR-0037](0037-preferred-agent-models-before-cross-provider-fallback.md) — Try preferred-agent models before cross-provider fallback — Accepted
+- [ADR-0038](0038-agent-run-budgets-are-progress-aware.md) — Agent-run budgets are progress-aware — Accepted

@@ -37,7 +37,9 @@ export async function executeAvailabilityPlan({
       };
     }
   }
-  return { last, attempts: plan.length, firstAvailabilityFailure, exhausted: plan.length > 0 };
+  // An empty plan means the availability ledger filtered every configured
+  // candidate. That is still an exhausted route, not a configuration error.
+  return { last, attempts: plan.length, firstAvailabilityFailure, exhausted: true };
 }
 
 function uniqueModels(models = []) {
@@ -55,7 +57,7 @@ function claudeFamily(model) {
   return ['fable', 'opus', 'sonnet', 'haiku'].find((name) => value.includes(name)) || value;
 }
 
-export function buildInterleavedModelPlan({
+export function buildPreferredAgentModelPlan({
   preferredAgent = 'claude',
   defaultClaudeModel,
   defaultCodexModel,
@@ -77,15 +79,15 @@ export function buildInterleavedModelPlan({
     defaultCodexModel ? { model: defaultCodexModel, label: defaultCodexModel } : null,
     ...codexModels,
   ]).slice(0, limit).map((item) => ({ agent: 'codex', ...item }));
-  const first = preferredAgent === 'codex' ? codex : claude;
-  const second = preferredAgent === 'codex' ? claude : codex;
-  const plan = [];
-  for (let index = 0; index < limit; index++) {
-    if (first[index]) plan.push(first[index]);
-    if (second[index]) plan.push(second[index]);
-  }
-  return plan;
+  const preferred = preferredAgent === 'codex' ? codex : claude;
+  const alternative = preferredAgent === 'codex' ? claude : codex;
+  // Try eligible sibling models before paying the higher context/session cost
+  // of crossing to another provider.
+  return [...preferred, ...alternative];
 }
+
+// Compatibility alias for downstream adapters using the former name.
+export const buildInterleavedModelPlan = buildPreferredAgentModelPlan;
 
 export function parseCodexModelCatalog(raw, fallbackModel) {
   try {

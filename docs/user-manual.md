@@ -66,8 +66,11 @@ revising an existing report.
 Only an explicit request to revise a named report updates an existing one; the desk asks when the
 target is ambiguous.
 
-If report generation alone reaches its tool budget, the bridge can make one smaller fresh-session
-completion attempt. That attempt cannot place, cancel, or replace orders, and incomplete report
+Successful, varied tool results count as progress, so production report runs have no default
+tool-call or output ceiling. The wall-clock timeout and loop/stall guards remain: repeated semantic
+calls, repeated identical failures, and sustained failures without a successful result stop the run.
+If report generation stops at one of those guards, the bridge can make one fresh-session completion
+attempt. That attempt cannot place, cancel, or replace orders, cannot recurse, and incomplete report
 scaffolds are never delivered. Execution transcripts stay in local ignored logs unless you opt in to
 phone delivery. In semi mode, saved report tickets are followed by a compact numbered action list and
 the exact `approve N` / `approve all` instruction. You can also discuss a pending ticket naturally,
@@ -75,10 +78,11 @@ revise it into a new numbered proposal, or use `close N` / `close all` to remove
 queue without touching a broker order. A new reconciled report automatically retires an older ticket
 that it does not re-propose.
 
-Intentional or recovery scheduled re-runs are allowed and receive distinct artifact names. Only a
-near-simultaneous double-fire of the same schedule kind is debounced. An ordinary non-report run that
-loops on an identical tool call may receive one small same-agent recovery pass; broker-execution runs
-never use that retry.
+Intentional or recovery scheduled re-runs are allowed and receive distinct artifact names. The
+included scheduler is bridge-backed and requires the bridge process; without it, invoke or schedule
+the terminal workflow directly. Only a near-simultaneous double-fire of the same schedule kind is
+debounced. An ordinary non-report run stopped by a loop/stall guard may receive one same-agent
+recovery pass; broker-execution runs never use that retry.
 
 ---
 

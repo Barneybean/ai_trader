@@ -5,6 +5,7 @@ import {
   buildModelChoices,
   buildModelChoiceSet,
   buildInterleavedModelPlan,
+  buildPreferredAgentModelPlan,
   executeAvailabilityPlan,
   formatModelChoiceForPhone,
   implicitModelChoiceAnswer,
@@ -32,8 +33,8 @@ test('parses and ranks the visible Codex catalog', () => {
   assert.deepEqual(parseCodexModelCatalog(raw, 'fallback').map((item) => item.model), ['gpt-first', 'gpt-second']);
 });
 
-test('interleaves at most the top three models from each agent', () => {
-  const plan = buildInterleavedModelPlan({
+test('tries preferred-agent models before crossing to another agent', () => {
+  const plan = buildPreferredAgentModelPlan({
     preferredAgent: 'claude',
     defaultClaudeModel: 'claude-fable-5',
     defaultCodexModel: 'gpt-5.6-sol',
@@ -47,11 +48,37 @@ test('interleaves at most the top three models from each agent', () => {
   });
   assert.deepEqual(plan.map((item) => [item.agent, item.model]), [
     ['claude', 'claude-fable-5'],
-    ['codex', 'gpt-5.6-sol'],
     ['claude', 'claude-opus-4-8'],
-    ['codex', 'gpt-5.6-terra'],
     ['claude', 'claude-sonnet-next'],
+    ['codex', 'gpt-5.6-sol'],
+    ['codex', 'gpt-5.6-terra'],
     ['codex', 'gpt-next'],
+  ]);
+  assert.deepEqual(buildInterleavedModelPlan({
+    preferredAgent: 'claude',
+    defaultClaudeModel: 'fable',
+    defaultCodexModel: 'gpt-one',
+    claudeModels: ['fable'],
+    codexModels: [{ model: 'gpt-one' }],
+  }), buildPreferredAgentModelPlan({
+    preferredAgent: 'claude',
+    defaultClaudeModel: 'fable',
+    defaultCodexModel: 'gpt-one',
+    claudeModels: ['fable'],
+    codexModels: [{ model: 'gpt-one' }],
+  }));
+});
+
+test('uses Codex alternatives first when Codex is preferred', () => {
+  const plan = buildPreferredAgentModelPlan({
+    preferredAgent: 'codex',
+    defaultClaudeModel: 'opus',
+    defaultCodexModel: 'gpt-one',
+    claudeModels: ['opus', 'sonnet'],
+    codexModels: [{ model: 'gpt-one' }, { model: 'gpt-two' }],
+  });
+  assert.deepEqual(plan.map((item) => [item.agent, item.model]), [
+    ['codex', 'gpt-one'], ['codex', 'gpt-two'], ['claude', 'opus'], ['claude', 'sonnet'],
   ]);
 });
 
@@ -110,6 +137,16 @@ test('availability plan stops on an ordinary task failure', async () => {
   assert.equal(attempts, 1);
   assert.equal(result.attempts, 1);
   assert.equal(result.exhausted, false);
+});
+
+test('an empty availability plan is reported as exhausted', async () => {
+  const result = await executeAvailabilityPlan({
+    plan: [],
+    runAttempt: async () => ({ ok: true }),
+  });
+  assert.equal(result.attempts, 0);
+  assert.equal(result.exhausted, true);
+  assert.match(result.last.text, /No automatic fallback model is configured/);
 });
 
 test('automatic full-mode handoff requires live broker reconciliation', () => {

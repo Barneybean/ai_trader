@@ -1,7 +1,7 @@
 // Agent-domain helpers for availability and fallback classification.
 // Keep this module side-effect free so the smoke gate can regression-test it.
 
-export const CODEX_UNAVAILABLE_RE = /rate.?limit|usage limit|quota|too many requests|\b429\b|limit reached|reached (?:your|the).{0,40}limit|try again later|not logged in|authentication|unauthorized|ENOENT|not found/i;
+export const CODEX_UNAVAILABLE_RE = /rate.?limit|usage limit|quota|too many requests|\b429\b|limit reached|\b(?:hit|reached)\b.{0,40}\blimits?\b|reached (?:your|the).{0,40}limit|not logged in|authentication|unauthorized/i;
 
 const BROKER_INTENT_RE = /\b(?:approve|broker|buy|cancel|execute|order|orders|portfolio|position|positions|quote|report|replace|robinhood|sell|trade)\b/i;
 const BROKER_UNAVAILABLE_RE = /(?:broker|robinhood).{0,80}(?:auth(?:orization)?|connection|mcp|status|tools?).{0,80}(?:pending|unavailable|cannot|can't|not available|not verified)|(?:live broker status unavailable|pending broker auth)/i;
@@ -164,6 +164,26 @@ export function claudeRateLimitBlocked(info) {
   return Boolean(status) && !status.startsWith('allowed');
 }
 
+// An explicit provider rate-limit event wins over a later final result. Some
+// CLI versions emit both and do not reliably mark the final result as an error.
+export function claudeAvailabilityOutcome({
+  rateLimitEvent = false,
+  rateLimitReason = null,
+  resetAtMs = null,
+  result = null,
+} = {}) {
+  const value = result?.result || result?.error || '';
+  const unavailable = Boolean(rateLimitEvent)
+    || Boolean(result?.is_error && availabilityFailure(value));
+  return {
+    unavailable,
+    reason: unavailable
+      ? String(rateLimitReason || value || 'usage limit reached').slice(0, 500)
+      : null,
+    resetAtMs: unavailable && Number.isFinite(Number(resetAtMs)) ? Number(resetAtMs) : null,
+  };
+}
+
 function stableToolInput(value) {
   if (value === null || value === undefined) return '';
   if (Array.isArray(value)) return `[${value.map(stableToolInput).join(',')}]`;
@@ -219,17 +239,35 @@ export function codexToolFingerprint(item = {}) {
 }
 
 export function createRunCircuitBreaker(options = {}) {
-  const maxToolCalls = Math.max(1, Number(options.maxToolCalls || 120));
-  const maxIdenticalToolCalls = Math.max(1, Number(options.maxIdenticalToolCalls || 6));
-  const maxOutputTokens = Math.max(1, Number(options.maxOutputTokens || 64_000));
+  const limit = (value, fallback) => {
+    if (value === undefined || value === null || value === '') return fallback;
+    return Number.isFinite(Number(value)) ? Math.max(0, Number(value)) : fallback;
+  };
+  // Successful, diverse tool work is progress rather than a loop. Production
+  // defaults therefore have no count/token ceiling; explicit operator/test
+  // values remain supported, and the time limit still bounds every attempt.
+  const maxToolCalls = limit(options.maxToolCalls, Infinity);
+  const maxIdenticalToolCalls = limit(options.maxIdenticalToolCalls, 6);
+  const maxOutputTokens = limit(options.maxOutputTokens, Infinity);
+  const maxIdenticalToolFailures = limit(options.maxIdenticalToolFailures, 3);
+  const maxConsecutiveToolFailures = limit(options.maxConsecutiveToolFailures, 8);
   let toolCalls = 0;
   let outputTokens = 0;
   const repeated = new Map();
+  const repeatedFailures = new Map();
+  let consecutiveToolFailures = 0;
+
+  const failureFingerprint = (value) => String(value || 'tool failed')
+    .replace(/\b[0-9a-f]{8,}\b/gi, '#')
+    .replace(/\b\d+\b/g, '#')
+    .replace(/\s+/g, ' ').trim().slice(0, 800);
 
   return {
     observeTool(signature) {
       toolCalls++;
-      if (toolCalls > maxToolCalls) return `tool-call limit exceeded (${toolCalls}/${maxToolCalls})`;
+      if (Number.isFinite(maxToolCalls) && toolCalls > maxToolCalls) {
+        return `tool-call limit exceeded (${toolCalls}/${maxToolCalls})`;
+      }
       if (signature === null || signature === undefined) return null;
       const key = String(signature).slice(0, 4000);
       const count = (repeated.get(key) || 0) + 1;
@@ -239,13 +277,33 @@ export function createRunCircuitBreaker(options = {}) {
       }
       return null;
     },
+    observeToolResult({ signature = null, ok = true, error = null } = {}) {
+      if (ok) {
+        consecutiveToolFailures = 0;
+        repeatedFailures.clear();
+        return null;
+      }
+      consecutiveToolFailures++;
+      const tool = signature === null || signature === undefined
+        ? 'unknown-tool' : String(signature).slice(0, 4000);
+      const key = `${tool}:${failureFingerprint(error)}`;
+      const count = (repeatedFailures.get(key) || 0) + 1;
+      repeatedFailures.set(key, count);
+      if (count > maxIdenticalToolFailures) {
+        return `identical tool failure repeated too many times (${count}/${maxIdenticalToolFailures})`;
+      }
+      if (consecutiveToolFailures > maxConsecutiveToolFailures) {
+        return `consecutive tool failures without progress (${consecutiveToolFailures}/${maxConsecutiveToolFailures})`;
+      }
+      return null;
+    },
     observeOutputTokens(tokens) {
       outputTokens += Math.max(0, Number(tokens) || 0);
-      return outputTokens > maxOutputTokens
+      return Number.isFinite(maxOutputTokens) && outputTokens > maxOutputTokens
         ? `streamed output-token limit exceeded (${outputTokens}/${maxOutputTokens})`
         : null;
     },
-    snapshot() { return { toolCalls, outputTokens }; },
+    snapshot() { return { toolCalls, outputTokens, consecutiveToolFailures }; },
   };
 }
 
