@@ -101,6 +101,8 @@ def main():
             payload["lang"] = rest[rest.index("--lang") + 1]
         result = _request("/api/transcripts", payload, timeout=900)
         dup = " (already in library)" if result.get("duplicate") else ""
+        if result.get("proofreadNotice"):
+            print(result["proofreadNotice"])
         print(f"Transcribed{dup}: {result.get('title') or rest[0]}")
         print(f"  source: {result.get('source', '?')} — "
               f"{len(result.get('transcript') or '')} chars, id {result.get('id', '?')}")
